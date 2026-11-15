@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-
+import './Admin.css'
 import {
     addCategory,
     deleteCategory,

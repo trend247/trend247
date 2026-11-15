@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-
+import './Admin.css'
 import type {
     Product,
     ProductVariant,
