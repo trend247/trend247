@@ -272,6 +272,7 @@ function AdminAddProduct() {
         setError('')
     }
 
+
     async function handleUploadImages(
         event: ChangeEvent<HTMLInputElement>
     ) {
@@ -290,12 +291,6 @@ function AdminAddProduct() {
 
         const files = selectedFiles.slice(0, remainingSlots)
 
-        if (selectedFiles.length > remainingSlots) {
-            setError(`يمكنك رفع ${remainingSlots} صور إضافية فقط`)
-        } else {
-            setError('')
-        }
-
         const validFiles = files.filter(file => {
             if (!file.type.startsWith('image/')) {
                 setError(`الملف ${file.name} ليس صورة صالحة`)
@@ -313,69 +308,75 @@ function AdminAddProduct() {
         if (!validFiles.length) return
 
         setUploadingImages(true)
+        setError('')
 
-        const uploadedUrls: string[] = []
+        let completed = 0
+        let successful = 0
         const failedFiles: string[] = []
 
+        setUploadProgress(`جارٍ رفع ${validFiles.length} صور بالتوازي...`)
+
         try {
-            for (let i = 0; i < validFiles.length; i++) {
-                const file = validFiles[i]
+            await Promise.all(
+                validFiles.map(async file => {
+                    try {
+                        const formData = new FormData()
 
-                setUploadProgress(
-                    `جارٍ رفع الصورة ${i + 1} من ${validFiles.length}...`
-                )
+                        formData.append('file', file)
+                        formData.append('upload_preset', 'trend247')
 
-                const formData = new FormData()
-                formData.append('file', file)
-                formData.append('upload_preset', 'trend247')
+                        const response = await fetch(
+                            'https://api.cloudinary.com/v1_1/nwqt8c1a/image/upload',
+                            {
+                                method: 'POST',
+                                body: formData,
+                            }
+                        )
 
-                const response = await fetch(
-                    'https://api.cloudinary.com/v1_1/nwqt8c1a/image/upload',
-                    {
-                        method: 'POST',
-                        body: formData,
+                        const result = await response.json()
+
+                        if (!response.ok || !result.secure_url) {
+                            throw new Error(
+                                result.error?.message || 'تعذر رفع الصورة'
+                            )
+                        }
+
+                        // إضافة الصورة فور اكتمال رفعها
+                        setImages(previous => [
+                            ...previous,
+                            result.secure_url,
+                        ])
+
+                        successful++
+
+                    } catch (err) {
+                        console.error(`Upload failed: ${file.name}`, err)
+                        failedFiles.push(file.name)
+
+                    } finally {
+                        completed++
+
+                        setUploadProgress(
+                            `اكتمل رفع ${completed} من ${validFiles.length} صور`
+                        )
                     }
+                })
+            )
+
+            if (failedFiles.length > 0) {
+                setError(
+                    `تم رفع ${successful} صور، وتعذر رفع: ${failedFiles.join('، ')}`
                 )
-
-                const result = await response.json()
-
-                if (!response.ok || !result.secure_url) {
-                    throw new Error(
-                        result.error?.message || 'تعذر رفع الصورة'
-                    )
-                }
-
-                uploadedUrls.push(result.secure_url)
+            } else {
+                setError('')
             }
-
-            if (uploadedUrls.length > 0) {
-                setImages(previous => [...previous, ...uploadedUrls])
-            }
-
-            setError(
-                failedFiles.length
-                    ? `تعذر رفع بعض الصور: ${failedFiles.join('، ')}`
-                    : ''
-            )
-
-        } catch (err) {
-            console.error('Cloudinary upload error:', err)
-
-            if (uploadedUrls.length > 0) {
-                setImages(previous => [...previous, ...uploadedUrls])
-            }
-
-            setError(
-                err instanceof Error
-                    ? `حدث خطأ أثناء رفع الصور: ${err.message}`
-                    : 'حدث خطأ أثناء رفع الصور'
-            )
 
         } finally {
             setUploadingImages(false)
             setUploadProgress('')
         }
     }
+
 
     // حذف صورة
     function removeImage(index: number) {
