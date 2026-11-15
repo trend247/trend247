@@ -6216,3 +6216,60 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+/* =====================================
+   تصميم زر رفع صور التصنيفات
+===================================== */
+
+.admin-category-image-upload label {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.admin-category-image-upload input[type="file"] {
+    width: 100%;
+    min-height: 52px;
+    padding: 10px;
+    border: 2px dashed #ffc107;
+    border-radius: 12px;
+    background: #fffdf5;
+    color: #1a1a1a;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-category-image-upload input[type="file"]:hover {
+    background: #fff8df;
+    border-color: #e5a900;
+}
+
+.admin-category-image-upload input[type="file"]::file-selector-button {
+    padding: 9px 18px;
+    margin-left: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #ffc107;
+    color: #1a1a1a;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.admin-category-image-upload input[type="file"]::file-selector-button:hover {
+    background: #e5a900;
+}
+
+.admin-category-image-upload input[type="file"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-category-image-upload input[type="file"]:disabled::file-selector-button {
+    cursor: not-allowed;
+}
