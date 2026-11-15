@@ -8277,3 +8277,24 @@ input[type="submit"],
 input[type="reset"] {
   -webkit-tap-highlight-color: transparent;
 }
+
+
+/* منع تحديد النص ونسخه عند الضغط المطوّل */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* السماح بالكتابة وتحديد النص داخل حقول الإدخال */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
