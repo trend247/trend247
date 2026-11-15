@@ -30,7 +30,17 @@ function ProductPage() {
     const [loading, setLoading] = useState(true)
     const [loadError, setLoadError] = useState(false)
     const [retryCount, setRetryCount] = useState(0)
+    useEffect(() => {
+        if (!product) return
 
+        const title = product.seoTitle?.trim() || product.name
+
+        document.title = `${title} | TREND247`
+
+        return () => {
+            document.title = 'TREND247 | كل ما هو ترند في مكان واحد'
+        }
+    }, [product])
     useEffect(() => {
         let cancelled = false
 
