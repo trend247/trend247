@@ -8263,3 +8263,17 @@ b {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* إزالة المربع الأزرق عند لمس العناصر في الجوال */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* منع تحديد النص عند الضغط المطوّل على الأزرار */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  -webkit-tap-highlight-color: transparent;
+}
