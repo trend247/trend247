@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 import type {
@@ -108,7 +108,8 @@ function AdminAddProduct() {
     const [images, setImages] = useState<string[]>([])
     const [mainImage, setMainImage] = useState(0)
     const [imageUrl, setImageUrl] = useState('')
-
+    const [uploadingImages, setUploadingImages] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState('')
     // البيانات الإضافية
     const [brand, setBrand] = useState('')
     const [model, setModel] = useState('')
@@ -269,6 +270,111 @@ function AdminAddProduct() {
         setImages(previous => [...previous, url])
         setImageUrl('')
         setError('')
+    }
+
+    async function handleUploadImages(
+        event: ChangeEvent<HTMLInputElement>
+    ) {
+        const input = event.currentTarget
+        const selectedFiles = Array.from(input.files ?? [])
+        input.value = ''
+
+        if (!selectedFiles.length) return
+
+        const remainingSlots = 8 - images.length
+
+        if (remainingSlots <= 0) {
+            setError('وصلت إلى الحد الأقصى وهو 8 صور')
+            return
+        }
+
+        const files = selectedFiles.slice(0, remainingSlots)
+
+        if (selectedFiles.length > remainingSlots) {
+            setError(`يمكنك رفع ${remainingSlots} صور إضافية فقط`)
+        } else {
+            setError('')
+        }
+
+        const validFiles = files.filter(file => {
+            if (!file.type.startsWith('image/')) {
+                setError(`الملف ${file.name} ليس صورة صالحة`)
+                return false
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                setError(`حجم الصورة ${file.name} أكبر من 10 ميجابايت`)
+                return false
+            }
+
+            return true
+        })
+
+        if (!validFiles.length) return
+
+        setUploadingImages(true)
+
+        const uploadedUrls: string[] = []
+        const failedFiles: string[] = []
+
+        try {
+            for (let i = 0; i < validFiles.length; i++) {
+                const file = validFiles[i]
+
+                setUploadProgress(
+                    `جارٍ رفع الصورة ${i + 1} من ${validFiles.length}...`
+                )
+
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('upload_preset', 'trend247')
+
+                const response = await fetch(
+                    'https://api.cloudinary.com/v1_1/nwqt8c1a/image/upload',
+                    {
+                        method: 'POST',
+                        body: formData,
+                    }
+                )
+
+                const result = await response.json()
+
+                if (!response.ok || !result.secure_url) {
+                    throw new Error(
+                        result.error?.message || 'تعذر رفع الصورة'
+                    )
+                }
+
+                uploadedUrls.push(result.secure_url)
+            }
+
+            if (uploadedUrls.length > 0) {
+                setImages(previous => [...previous, ...uploadedUrls])
+            }
+
+            setError(
+                failedFiles.length
+                    ? `تعذر رفع بعض الصور: ${failedFiles.join('، ')}`
+                    : ''
+            )
+
+        } catch (err) {
+            console.error('Cloudinary upload error:', err)
+
+            if (uploadedUrls.length > 0) {
+                setImages(previous => [...previous, ...uploadedUrls])
+            }
+
+            setError(
+                err instanceof Error
+                    ? `حدث خطأ أثناء رفع الصور: ${err.message}`
+                    : 'حدث خطأ أثناء رفع الصور'
+            )
+
+        } finally {
+            setUploadingImages(false)
+            setUploadProgress('')
+        }
     }
 
     // حذف صورة
@@ -434,6 +540,10 @@ function AdminAddProduct() {
     // حفظ المنتج: إضافة أو تعديل
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
+        if (uploadingImages) {
+            setError('انتظر حتى يكتمل رفع الصور قبل حفظ المنتج')
+            return
+        }
         setError('')
 
         const currentPrice = Number(price)
@@ -763,6 +873,26 @@ function AdminAddProduct() {
                                 <p>أضف الصور أو احذفها أو غيّر الصورة الرئيسية</p>
                             </div>
                         </div>
+
+                        <div className="admin-image-url-box">
+                            <label className="admin-field">
+                                <span>رفع الصور من جهازك</span>
+
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    disabled={uploadingImages || images.length >= 8}
+                                    onChange={handleUploadImages}
+                                />
+                            </label>
+                        </div>
+
+                        {uploadingImages && (
+                            <div className="admin-upload-note">
+                                {uploadProgress}
+                            </div>
+                        )}
 
                         <div className="admin-image-url-box">
                             <label className="admin-field">
@@ -1364,7 +1494,7 @@ function AdminAddProduct() {
                         <button
                             type="submit"
                             className="admin-save-button"
-                            disabled={saving}
+                            disabled={saving || uploadingImages}
                         >
                             {saving
                                 ? 'جارٍ الحفظ...'
