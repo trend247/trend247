@@ -1,0 +1,572 @@
+
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+
+import {
+    addCategory,
+    deleteCategory,
+    getAdminCategories,
+    toggleCategoryStatus,
+    updateCategory,
+} from './services/categoryService'
+
+import type { StoreCategory } from './services/categoryService'
+
+const emptyForm = {
+    name: '',
+    icon: '📦',
+    image: '',
+    description: '',
+    isActive: true,
+    sortOrder: 1,
+}
+
+function AdminCategories() {
+    const [categories, setCategories] = useState<StoreCategory[]>([])
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState('')
+
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [form, setForm] = useState(emptyForm)
+    const [showForm, setShowForm] = useState(false)
+
+    // منع تكرار الضغط على إجراءات التصنيفات
+    const [processingIds, setProcessingIds] = useState<string[]>([])
+
+    // =====================================
+    // تحميل التصنيفات عند فتح الصفحة فقط
+    // =====================================
+
+    useEffect(() => {
+        let cancelled = false
+
+        async function loadInitialCategories() {
+            setLoading(true)
+            setError('')
+
+            try {
+                const data = await getAdminCategories()
+
+                if (!cancelled) {
+                    setCategories(data)
+                }
+            } catch (err) {
+                console.error('Load categories error:', err)
+
+                if (!cancelled) {
+                    setError(
+                        'تعذر تحميل التصنيفات. تحقق من اتصالك وصلاحيات المدير.'
+                    )
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        void loadInitialCategories()
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    // =====================================
+    // أدوات مساعدة
+    // =====================================
+
+    function sortCategories(items: StoreCategory[]) {
+        return [...items].sort(
+            (a, b) => a.sortOrder - b.sortOrder
+        )
+    }
+
+    function startProcessing(id: string) {
+        setProcessingIds((current) =>
+            current.includes(id) ? current : [...current, id]
+        )
+    }
+
+    function stopProcessing(id: string) {
+        setProcessingIds((current) =>
+            current.filter((item) => item !== id)
+        )
+    }
+
+    // =====================================
+    // إضافة تصنيف جديد
+    // =====================================
+
+    function handleNewCategory() {
+        setEditingId(null)
+
+        setForm({
+            ...emptyForm,
+            sortOrder: categories.length + 1,
+        })
+
+        setError('')
+        setSuccess('')
+        setShowForm(true)
+    }
+
+    // =====================================
+    // تعديل تصنيف
+    // =====================================
+
+    function handleEdit(category: StoreCategory) {
+        setEditingId(category.id)
+
+        setForm({
+            name: category.name,
+            icon: category.icon,
+            image: category.image,
+            description: category.description,
+            isActive: category.isActive,
+            sortOrder: category.sortOrder,
+        })
+
+        setError('')
+        setSuccess('')
+        setShowForm(true)
+    }
+
+    // =====================================
+    // حفظ التصنيف دون إعادة تحميل القائمة
+    // =====================================
+
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+
+        if (!form.name.trim()) {
+            setError('يرجى إدخال اسم التصنيف.')
+            return
+        }
+
+        setSaving(true)
+        setError('')
+        setSuccess('')
+
+        try {
+            const categoryData = {
+                ...form,
+                name: form.name.trim(),
+                icon: form.icon.trim() || '📦',
+                image: form.image.trim(),
+                description: form.description.trim(),
+                sortOrder: Math.max(1, Number(form.sortOrder) || 1),
+            }
+
+            if (editingId) {
+                const currentCategory = categories.find(
+                    (item) => item.id === editingId
+                )
+
+                await updateCategory(editingId, categoryData)
+
+                // تحديث التصنيف محليًا بعد نجاح Firestore
+                if (currentCategory) {
+                    const updatedCategory: StoreCategory = {
+                        ...currentCategory,
+                        ...categoryData,
+                        updatedAt: new Date().toISOString(),
+                    }
+
+                    setCategories((current) =>
+                        sortCategories(
+                            current.map((item) =>
+                                item.id === editingId
+                                    ? updatedCategory
+                                    : item
+                            )
+                        )
+                    )
+                }
+
+                setSuccess('تم تحديث التصنيف بنجاح.')
+            } else {
+                const newId = await addCategory(categoryData)
+
+                const now = new Date().toISOString()
+
+                const newCategory: StoreCategory = {
+                    ...categoryData,
+                    id: newId,
+                    createdAt: now,
+                    updatedAt: now,
+                }
+
+                setCategories((current) =>
+                    sortCategories([...current, newCategory])
+                )
+
+                setSuccess('تمت إضافة التصنيف بنجاح.')
+            }
+
+            setShowForm(false)
+            setEditingId(null)
+            setForm(emptyForm)
+        } catch (err) {
+            console.error('Save category error:', err)
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'تعذر حفظ التصنيف.'
+            )
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    // =====================================
+    // إظهار وإخفاء تصنيف
+    // =====================================
+
+    async function handleToggle(category: StoreCategory) {
+        if (processingIds.includes(category.id)) return
+
+        setError('')
+        setSuccess('')
+        startProcessing(category.id)
+
+        try {
+            const newStatus = !category.isActive
+
+            await toggleCategoryStatus(category.id, newStatus)
+
+            // تحديث الحالة محليًا دون إعادة تحميل
+            setCategories((current) =>
+                current.map((item) =>
+                    item.id === category.id
+                        ? { ...item, isActive: newStatus }
+                        : item
+                )
+            )
+
+            setSuccess(
+                newStatus
+                    ? 'تم إظهار التصنيف بنجاح.'
+                    : 'تم إخفاء التصنيف بنجاح.'
+            )
+        } catch (err) {
+            console.error('Toggle category error:', err)
+            setError('تعذر تغيير حالة التصنيف.')
+        } finally {
+            stopProcessing(category.id)
+        }
+    }
+
+    // =====================================
+    // حذف تصنيف
+    // =====================================
+
+    async function handleDelete(category: StoreCategory) {
+        if (processingIds.includes(category.id)) return
+
+        const confirmed = window.confirm(
+            `هل أنت متأكد من حذف تصنيف "${category.name}"؟`
+        )
+
+        if (!confirmed) return
+
+        setError('')
+        setSuccess('')
+        startProcessing(category.id)
+
+        try {
+            await deleteCategory(category.id)
+
+            // إزالة التصنيف محليًا دون إعادة تحميل
+            setCategories((current) =>
+                current.filter((item) => item.id !== category.id)
+            )
+
+            setSuccess('تم حذف التصنيف بنجاح.')
+        } catch (err) {
+            console.error('Delete category error:', err)
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'تعذر حذف التصنيف.'
+            )
+        } finally {
+            stopProcessing(category.id)
+        }
+    }
+
+    return (
+        <div className="admin-categories">
+
+            <div className="admin-categories-header">
+                <div>
+                    <h2>التصنيفات</h2>
+                    <p>إدارة وتنظيم أقسام متجر TREND247</p>
+                </div>
+
+                <button
+                    type="button"
+                    className="admin-category-add-btn"
+                    onClick={handleNewCategory}
+                >
+                    + إضافة تصنيف
+                </button>
+            </div>
+
+            <div className="admin-category-stats">
+                <div>
+                    <span>إجمالي التصنيفات</span>
+                    <strong>{categories.length}</strong>
+                </div>
+
+                <div>
+                    <span>التصنيفات النشطة</span>
+                    <strong>
+                        {categories.filter((item) => item.isActive).length}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>التصنيفات المخفية</span>
+                    <strong>
+                        {categories.filter((item) => !item.isActive).length}
+                    </strong>
+                </div>
+            </div>
+
+            {error && (
+                <div className="admin-category-message error">
+                    {error}
+                </div>
+            )}
+
+            {success && (
+                <div className="admin-category-message success">
+                    {success}
+                </div>
+            )}
+
+            {showForm && (
+                <form
+                    className="admin-category-form"
+                    onSubmit={handleSubmit}
+                >
+                    <h3>
+                        {editingId ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}
+                    </h3>
+
+                    <div className="admin-category-form-grid">
+
+                        <label>
+                            اسم التصنيف
+                            <input
+                                value={form.name}
+                                onChange={(e) =>
+                                    setForm({ ...form, name: e.target.value })
+                                }
+                                placeholder="مثال: الإلكترونيات"
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            الأيقونة
+                            <input
+                                value={form.icon}
+                                onChange={(e) =>
+                                    setForm({ ...form, icon: e.target.value })
+                                }
+                                placeholder="🎧"
+                            />
+                        </label>
+
+                        <label className="full">
+                            رابط صورة التصنيف
+                            <input
+                                type="url"
+                                value={form.image}
+                                onChange={(e) =>
+                                    setForm({ ...form, image: e.target.value })
+                                }
+                                placeholder="https://example.com/image.jpg"
+                            />
+                        </label>
+
+                        <label className="full">
+                            وصف التصنيف
+                            <textarea
+                                value={form.description}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        description: e.target.value,
+                                    })
+                                }
+                                placeholder="وصف مختصر للتصنيف..."
+                                rows={3}
+                            />
+                        </label>
+
+                        <label>
+                            ترتيب الظهور
+                            <input
+                                type="number"
+                                min="1"
+                                value={form.sortOrder}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        sortOrder: Number(e.target.value),
+                                    })
+                                }
+                            />
+                        </label>
+
+                        <label className="admin-category-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={form.isActive}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        isActive: e.target.checked,
+                                    })
+                                }
+                            />
+                            تصنيف نشط وظاهر للزوار
+                        </label>
+
+                    </div>
+
+                    {form.image && (
+                        <div className="admin-category-preview">
+                            <img
+                                src={form.image}
+                                alt="معاينة التصنيف"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    <div className="admin-category-form-actions">
+                        <button type="submit" disabled={saving}>
+                            {saving ? 'جارٍ الحفظ...' : 'حفظ التصنيف'}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowForm(false)}
+                            disabled={saving}
+                        >
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            {loading ? (
+                <div className="admin-category-loading">
+                    جارٍ تحميل التصنيفات...
+                </div>
+            ) : categories.length === 0 ? (
+                <div className="admin-category-empty">
+                    لا توجد تصنيفات حتى الآن.
+                </div>
+            ) : (
+                <div className="admin-category-table-wrapper">
+                    <table className="admin-category-table">
+                        <thead>
+                            <tr>
+                                <th>التصنيف</th>
+                                <th>الترتيب</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {categories.map((category) => (
+                                <tr key={category.id}>
+                                    <td>
+                                        <div className="admin-category-info">
+                                            {category.image ? (
+                                                <img
+                                                    src={category.image}
+                                                    alt={category.name}
+                                                />
+                                            ) : (
+                                                <span className="admin-category-icon">
+                                                    {category.icon}
+                                                </span>
+                                            )}
+
+                                            <div>
+                                                <strong>{category.name}</strong>
+                                                <small>{category.icon}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>{category.sortOrder}</td>
+
+                                    <td>
+                                        <span
+                                            className={
+                                                category.isActive
+                                                    ? 'admin-category-status active'
+                                                    : 'admin-category-status inactive'
+                                            }
+                                        >
+                                            {category.isActive ? 'نشط' : 'مخفي'}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <div className="admin-category-actions">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleEdit(category)}
+                                            >
+                                                تعديل
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                disabled={processingIds.includes(category.id)}
+                                                onClick={() => void handleToggle(category)}
+                                            >
+                                                {processingIds.includes(category.id)
+                                                    ? 'جارٍ التنفيذ...'
+                                                    : category.isActive
+                                                        ? 'إخفاء'
+                                                        : 'إظهار'}
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="delete"
+                                                disabled={processingIds.includes(category.id)}
+                                                onClick={() => void handleDelete(category)}
+                                            >
+                                                {processingIds.includes(category.id)
+                                                    ? 'جارٍ التنفيذ...'
+                                                    : 'حذف'}
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+        </div>
+    )
+}
+
+export default AdminCategories
