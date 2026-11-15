@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import './Admin.css'
+
 import {
     addCategory,
     deleteCategory,
@@ -153,7 +154,6 @@ function AdminCategories() {
                 )
             }
 
-            // تحديث الصورة فور اكتمال الرفع
             setForm((current) => ({
                 ...current,
                 image: result.secure_url,
@@ -177,7 +177,7 @@ function AdminCategories() {
     }
 
     // =====================================
-    // إضافة تصنيف جديد
+    // فتح نافذة إضافة تصنيف
     // =====================================
 
     function handleNewCategory() {
@@ -195,7 +195,7 @@ function AdminCategories() {
     }
 
     // =====================================
-    // تعديل تصنيف
+    // فتح نافذة تعديل تصنيف
     // =====================================
 
     function handleEdit(category: StoreCategory) {
@@ -214,6 +214,19 @@ function AdminCategories() {
         setSuccess('')
         setUploadProgress('')
         setShowForm(true)
+    }
+
+    // =====================================
+    // إغلاق النافذة
+    // =====================================
+
+    function handleCloseForm() {
+        if (saving || uploadingImage) return
+
+        setShowForm(false)
+        setEditingId(null)
+        setError('')
+        setUploadProgress('')
     }
 
     // =====================================
@@ -327,7 +340,6 @@ function AdminCategories() {
 
             await toggleCategoryStatus(category.id, newStatus)
 
-            // تحديث الحالة محليًا دون إعادة تحميل
             setCategories((current) =>
                 current.map((item) =>
                     item.id === category.id
@@ -369,7 +381,6 @@ function AdminCategories() {
         try {
             await deleteCategory(category.id)
 
-            // إزالة التصنيف محليًا دون إعادة تحميل
             setCategories((current) =>
                 current.filter((item) => item.id !== category.id)
             )
@@ -431,7 +442,7 @@ function AdminCategories() {
                 </div>
             </div>
 
-            {error && (
+            {error && !showForm && (
                 <div className="admin-category-message error">
                     {error}
                 </div>
@@ -443,173 +454,226 @@ function AdminCategories() {
                 </div>
             )}
 
+            {/* =====================================
+                النافذة المنبثقة للإضافة والتعديل
+            ===================================== */}
+
             {showForm && (
-                <form
-                    className="admin-category-form"
-                    onSubmit={handleSubmit}
+                <div
+                    className="admin-category-modal-overlay"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            handleCloseForm()
+                        }
+                    }}
                 >
-                    <h3>
-                        {editingId ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}
-                    </h3>
+                    <form
+                        className="admin-category-form admin-category-modal"
+                        onSubmit={handleSubmit}
+                    >
+                        {/* رأس النافذة */}
+                        <div className="admin-category-modal-header">
+                            <div>
+                                <span className="admin-category-modal-label">
+                                    {editingId ? 'تعديل التصنيف' : 'تصنيف جديد'}
+                                </span>
 
-                    <div className="admin-category-form-grid">
+                                <h3>
+                                    {editingId
+                                        ? 'تعديل بيانات التصنيف'
+                                        : 'إضافة تصنيف جديد'}
+                                </h3>
 
-                        <label>
-                            اسم التصنيف
-                            <input
-                                value={form.name}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        name: e.target.value,
-                                    })
-                                }
-                                placeholder="مثال: الإلكترونيات"
-                                required
-                            />
-                        </label>
+                                <p>
+                                    أدخل بيانات التصنيف وصورته لإظهاره في متجرك.
+                                </p>
+                            </div>
 
-                        <label>
-                            الأيقونة
-                            <input
-                                value={form.icon}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        icon: e.target.value,
-                                    })
-                                }
-                                placeholder="🎧"
-                            />
-                        </label>
+                            <button
+                                type="button"
+                                className="admin-category-modal-close"
+                                onClick={handleCloseForm}
+                                disabled={saving || uploadingImage}
+                                aria-label="إغلاق النافذة"
+                            >
+                                ×
+                            </button>
+                        </div>
 
-                        {/* رفع صورة التصنيف */}
-                        <div className="full admin-category-image-upload">
+                        {/* رسائل الأخطاء داخل النافذة */}
+                        {error && (
+                            <div className="admin-category-message error">
+                                {error}
+                            </div>
+                        )}
 
-                            <label>
-                                رفع صورة التصنيف من جهازك
-
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    disabled={uploadingImage || saving}
-                                    onChange={handleUploadCategoryImage}
-                                />
-                            </label>
-
-                            {uploadingImage && (
-                                <div className="admin-category-message">
-                                    {uploadProgress}
-                                </div>
-                            )}
-
-                            {!uploadingImage && uploadProgress && (
-                                <div className="admin-category-message success">
-                                    {uploadProgress}
-                                </div>
-                            )}
+                        <div className="admin-category-form-grid">
 
                             <label>
-                                أو أدخل رابط الصورة يدويًا
-
+                                اسم التصنيف
                                 <input
-                                    type="url"
-                                    value={form.image}
-                                    disabled={uploadingImage || saving}
-                                    onChange={(e) => {
+                                    value={form.name}
+                                    onChange={(e) =>
                                         setForm({
                                             ...form,
-                                            image: e.target.value,
+                                            name: e.target.value,
                                         })
-                                        setUploadProgress('')
-                                    }}
-                                    placeholder="https://example.com/image.jpg"
+                                    }
+                                    placeholder="مثال: الإلكترونيات"
+                                    required
                                 />
+                            </label>
+
+                            <label>
+                                الأيقونة
+                                <input
+                                    value={form.icon}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            icon: e.target.value,
+                                        })
+                                    }
+                                    placeholder="🎧"
+                                />
+                            </label>
+
+                            {/* رفع صورة التصنيف */}
+                            <div className="full admin-category-image-upload">
+
+                                <label>
+                                    رفع صورة التصنيف من جهازك
+
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        disabled={uploadingImage || saving}
+                                        onChange={handleUploadCategoryImage}
+                                    />
+                                </label>
+
+                                {uploadingImage && (
+                                    <div className="admin-category-message">
+                                        {uploadProgress}
+                                    </div>
+                                )}
+
+                                {!uploadingImage && uploadProgress && (
+                                    <div className="admin-category-message success">
+                                        {uploadProgress}
+                                    </div>
+                                )}
+
+                                <label>
+                                    أو أدخل رابط الصورة يدويًا
+
+                                    <input
+                                        type="url"
+                                        value={form.image}
+                                        disabled={uploadingImage || saving}
+                                        onChange={(e) => {
+                                            setForm({
+                                                ...form,
+                                                image: e.target.value,
+                                            })
+                                            setUploadProgress('')
+                                        }}
+                                        placeholder="https://example.com/image.jpg"
+                                    />
+                                </label>
+
+                            </div>
+
+                            <label className="full">
+                                وصف التصنيف
+                                <textarea
+                                    value={form.description}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            description: e.target.value,
+                                        })
+                                    }
+                                    placeholder="وصف مختصر للتصنيف..."
+                                    rows={3}
+                                />
+                            </label>
+
+                            <label>
+                                ترتيب الظهور
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={form.sortOrder}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            sortOrder: Number(e.target.value),
+                                        })
+                                    }
+                                />
+                            </label>
+
+                            <label className="admin-category-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={form.isActive}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            isActive: e.target.checked,
+                                        })
+                                    }
+                                />
+                                تصنيف نشط وظاهر للزوار
                             </label>
 
                         </div>
 
-                        <label className="full">
-                            وصف التصنيف
-                            <textarea
-                                value={form.description}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        description: e.target.value,
-                                    })
-                                }
-                                placeholder="وصف مختصر للتصنيف..."
-                                rows={3}
-                            />
-                        </label>
+                        {/* معاينة صورة التصنيف */}
+                        {form.image && (
+                            <div className="admin-category-preview">
+                                <img
+                                    src={form.image}
+                                    alt="معاينة التصنيف"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                    }}
+                                />
+                            </div>
+                        )}
 
-                        <label>
-                            ترتيب الظهور
-                            <input
-                                type="number"
-                                min="1"
-                                value={form.sortOrder}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        sortOrder: Number(e.target.value),
-                                    })
-                                }
-                            />
-                        </label>
+                        {/* أزرار النافذة */}
+                        <div className="admin-category-form-actions">
+                            <button
+                                type="submit"
+                                disabled={saving || uploadingImage}
+                            >
+                                {uploadingImage
+                                    ? 'جارٍ رفع الصورة...'
+                                    : saving
+                                        ? 'جارٍ الحفظ...'
+                                        : editingId
+                                            ? 'حفظ التعديلات'
+                                            : 'إضافة التصنيف'}
+                            </button>
 
-                        <label className="admin-category-checkbox">
-                            <input
-                                type="checkbox"
-                                checked={form.isActive}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        isActive: e.target.checked,
-                                    })
-                                }
-                            />
-                            تصنيف نشط وظاهر للزوار
-                        </label>
-
-                    </div>
-
-                    {/* معاينة صورة التصنيف */}
-                    {form.image && (
-                        <div className="admin-category-preview">
-                            <img
-                                src={form.image}
-                                alt="معاينة التصنيف"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none'
-                                }}
-                            />
+                            <button
+                                type="button"
+                                onClick={handleCloseForm}
+                                disabled={saving || uploadingImage}
+                            >
+                                إلغاء
+                            </button>
                         </div>
-                    )}
 
-                    <div className="admin-category-form-actions">
-                        <button
-                            type="submit"
-                            disabled={saving || uploadingImage}
-                        >
-                            {uploadingImage
-                                ? 'جارٍ رفع الصورة...'
-                                : saving
-                                    ? 'جارٍ الحفظ...'
-                                    : 'حفظ التصنيف'}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setShowForm(false)}
-                            disabled={saving || uploadingImage}
-                        >
-                            إلغاء
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             )}
+
+            {/* =====================================
+                جدول التصنيفات
+            ===================================== */}
 
             {loading ? (
                 <div className="admin-category-loading">
