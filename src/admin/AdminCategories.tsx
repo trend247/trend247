@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 
 import {
     addCategory,
@@ -31,6 +31,10 @@ function AdminCategories() {
     const [editingId, setEditingId] = useState<string | null>(null)
     const [form, setForm] = useState(emptyForm)
     const [showForm, setShowForm] = useState(false)
+
+    // حالة رفع صورة التصنيف
+    const [uploadingImage, setUploadingImage] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState('')
 
     // منع تكرار الضغط على إجراءات التصنيفات
     const [processingIds, setProcessingIds] = useState<string[]>([])
@@ -97,6 +101,82 @@ function AdminCategories() {
     }
 
     // =====================================
+    // رفع صورة التصنيف إلى Cloudinary
+    // =====================================
+
+    async function handleUploadCategoryImage(
+        event: ChangeEvent<HTMLInputElement>
+    ) {
+        const input = event.currentTarget
+        const file = input.files?.[0]
+
+        // السماح باختيار الصورة نفسها مرة أخرى
+        input.value = ''
+
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            setError('يرجى اختيار ملف صورة صالح.')
+            return
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            setError('حجم الصورة يجب ألا يتجاوز 10 ميجابايت.')
+            return
+        }
+
+        setUploadingImage(true)
+        setError('')
+        setSuccess('')
+        setUploadProgress('جارٍ رفع صورة التصنيف...')
+
+        try {
+            const formData = new FormData()
+
+            formData.append('file', file)
+            formData.append('upload_preset', 'trend247')
+
+            const response = await fetch(
+                'https://api.cloudinary.com/v1_1/nwqt8c1a/image/upload',
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            )
+
+            const result = await response.json()
+
+            if (!response.ok || !result.secure_url) {
+                throw new Error(
+                    result.error?.message ||
+                    'تعذر رفع الصورة إلى Cloudinary.'
+                )
+            }
+
+            // تحديث الصورة فور اكتمال الرفع
+            setForm((current) => ({
+                ...current,
+                image: result.secure_url,
+            }))
+
+            setUploadProgress('تم رفع الصورة بنجاح.')
+
+        } catch (err) {
+            console.error('Category image upload error:', err)
+
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'حدث خطأ أثناء رفع صورة التصنيف.'
+            )
+
+            setUploadProgress('')
+        } finally {
+            setUploadingImage(false)
+        }
+    }
+
+    // =====================================
     // إضافة تصنيف جديد
     // =====================================
 
@@ -110,6 +190,7 @@ function AdminCategories() {
 
         setError('')
         setSuccess('')
+        setUploadProgress('')
         setShowForm(true)
     }
 
@@ -131,6 +212,7 @@ function AdminCategories() {
 
         setError('')
         setSuccess('')
+        setUploadProgress('')
         setShowForm(true)
     }
 
@@ -140,6 +222,11 @@ function AdminCategories() {
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
+
+        if (uploadingImage) {
+            setError('يرجى الانتظار حتى يكتمل رفع صورة التصنيف.')
+            return
+        }
 
         if (!form.name.trim()) {
             setError('يرجى إدخال اسم التصنيف.')
@@ -209,8 +296,11 @@ function AdminCategories() {
             setShowForm(false)
             setEditingId(null)
             setForm(emptyForm)
+            setUploadProgress('')
+
         } catch (err) {
             console.error('Save category error:', err)
+
             setError(
                 err instanceof Error
                     ? err.message
@@ -287,6 +377,7 @@ function AdminCategories() {
             setSuccess('تم حذف التصنيف بنجاح.')
         } catch (err) {
             console.error('Delete category error:', err)
+
             setError(
                 err instanceof Error
                     ? err.message
@@ -296,6 +387,10 @@ function AdminCategories() {
             stopProcessing(category.id)
         }
     }
+
+    // =====================================
+    // واجهة التصنيفات
+    // =====================================
 
     return (
         <div className="admin-categories">
@@ -364,7 +459,10 @@ function AdminCategories() {
                             <input
                                 value={form.name}
                                 onChange={(e) =>
-                                    setForm({ ...form, name: e.target.value })
+                                    setForm({
+                                        ...form,
+                                        name: e.target.value,
+                                    })
                                 }
                                 placeholder="مثال: الإلكترونيات"
                                 required
@@ -376,23 +474,60 @@ function AdminCategories() {
                             <input
                                 value={form.icon}
                                 onChange={(e) =>
-                                    setForm({ ...form, icon: e.target.value })
+                                    setForm({
+                                        ...form,
+                                        icon: e.target.value,
+                                    })
                                 }
                                 placeholder="🎧"
                             />
                         </label>
 
-                        <label className="full">
-                            رابط صورة التصنيف
-                            <input
-                                type="url"
-                                value={form.image}
-                                onChange={(e) =>
-                                    setForm({ ...form, image: e.target.value })
-                                }
-                                placeholder="https://example.com/image.jpg"
-                            />
-                        </label>
+                        {/* رفع صورة التصنيف */}
+                        <div className="full admin-category-image-upload">
+
+                            <label>
+                                رفع صورة التصنيف من جهازك
+
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={uploadingImage || saving}
+                                    onChange={handleUploadCategoryImage}
+                                />
+                            </label>
+
+                            {uploadingImage && (
+                                <div className="admin-category-message">
+                                    {uploadProgress}
+                                </div>
+                            )}
+
+                            {!uploadingImage && uploadProgress && (
+                                <div className="admin-category-message success">
+                                    {uploadProgress}
+                                </div>
+                            )}
+
+                            <label>
+                                أو أدخل رابط الصورة يدويًا
+
+                                <input
+                                    type="url"
+                                    value={form.image}
+                                    disabled={uploadingImage || saving}
+                                    onChange={(e) => {
+                                        setForm({
+                                            ...form,
+                                            image: e.target.value,
+                                        })
+                                        setUploadProgress('')
+                                    }}
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                            </label>
+
+                        </div>
 
                         <label className="full">
                             وصف التصنيف
@@ -440,6 +575,7 @@ function AdminCategories() {
 
                     </div>
 
+                    {/* معاينة صورة التصنيف */}
                     {form.image && (
                         <div className="admin-category-preview">
                             <img
@@ -453,14 +589,21 @@ function AdminCategories() {
                     )}
 
                     <div className="admin-category-form-actions">
-                        <button type="submit" disabled={saving}>
-                            {saving ? 'جارٍ الحفظ...' : 'حفظ التصنيف'}
+                        <button
+                            type="submit"
+                            disabled={saving || uploadingImage}
+                        >
+                            {uploadingImage
+                                ? 'جارٍ رفع الصورة...'
+                                : saving
+                                    ? 'جارٍ الحفظ...'
+                                    : 'حفظ التصنيف'}
                         </button>
 
                         <button
                             type="button"
                             onClick={() => setShowForm(false)}
-                            disabled={saving}
+                            disabled={saving || uploadingImage}
                         >
                             إلغاء
                         </button>
