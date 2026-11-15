@@ -8242,3 +8242,24 @@ b {
     font-size: 12px;
   }
 }
+
+
+.admin-category-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-category-image-upload input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.admin-category-image-upload input[type="file"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
