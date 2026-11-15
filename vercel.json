@@ -1,6 +1,5 @@
 
 {
-  
   "rewrites": [
     {
       "source": "/product/:path*",
@@ -12,6 +11,10 @@
         }
       ],
       "destination": "/api/product-preview?path=:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
