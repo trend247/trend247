@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from 'react'
 
 import {
@@ -162,7 +161,6 @@ function AdminCustomers() {
 
         return customers.filter((customer) =>
             customer.name.toLowerCase().includes(value) ||
-            customer.email.toLowerCase().includes(value) ||
             customer.phone.toLowerCase().includes(value)
         )
     }, [customers, searchValue])
@@ -204,7 +202,6 @@ function AdminCustomers() {
 
                     <div className="admin-customer-profile-info">
                         <h3>{selectedCustomer.name || 'بدون اسم'}</h3>
-                        <p>{selectedCustomer.email || 'لا يوجد بريد إلكتروني'}</p>
                         <span>
                             {selectedCustomer.phone || 'لا يوجد رقم هاتف'}
                         </span>
@@ -220,27 +217,8 @@ function AdminCustomers() {
                     </div>
 
                     <div className="admin-customer-detail-card">
-                        <span>البريد الإلكتروني</span>
-                        <strong>{selectedCustomer.email || 'غير متوفر'}</strong>
-                    </div>
-
-                    <div className="admin-customer-detail-card">
                         <span>رقم الهاتف</span>
                         <strong>{selectedCustomer.phone || 'غير مسجل'}</strong>
-                    </div>
-
-                    <div className="admin-customer-detail-card">
-                        <span>توثيق البريد</span>
-                        <strong>
-                            {selectedCustomer.emailVerified ? 'موثّق' : 'غير موثّق'}
-                        </strong>
-                    </div>
-
-                    <div className="admin-customer-detail-card">
-                        <span>توثيق الهاتف</span>
-                        <strong>
-                            {selectedCustomer.phoneVerified ? 'موثّق' : 'غير موثّق'}
-                        </strong>
                     </div>
 
                     <div className="admin-customer-detail-card">
@@ -512,29 +490,13 @@ function AdminCustomers() {
                     <small>عدد الحسابات المسجلة</small>
                 </div>
 
-                <div className="admin-customer-stat">
-                    <span>البريد الموثق</span>
-                    <strong>
-                        {customers.filter((customer) => customer.emailVerified).length}
-                    </strong>
-                    <small>حسابات بريدها الإلكتروني موثق</small>
-                </div>
-
-                <div className="admin-customer-stat">
-                    <span>الهاتف الموثق</span>
-                    <strong>
-                        {customers.filter((customer) => customer.phoneVerified).length}
-                    </strong>
-                    <small>حسابات أرقامها موثقة</small>
-                </div>
-
             </div>
 
             {/* البحث */}
             <div className="admin-customers-toolbar">
                 <input
                     type="search"
-                    placeholder="ابحث بالاسم أو البريد الإلكتروني أو الهاتف..."
+                    placeholder="ابحث باسم العميل أو رقم الهاتف..."
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
                 />
@@ -584,10 +546,7 @@ function AdminCustomers() {
                         <thead>
                             <tr>
                                 <th>العميل</th>
-                                <th>البريد الإلكتروني</th>
                                 <th>رقم الهاتف</th>
-                                <th>البريد</th>
-                                <th>الهاتف</th>
                                 <th>التفاصيل</th>
                             </tr>
                         </thead>
@@ -608,32 +567,9 @@ function AdminCustomers() {
                                         </div>
                                     </td>
 
-                                    <td>{customer.email || '—'}</td>
                                     <td>{customer.phone || '—'}</td>
 
-                                    <td>
-                                        <span
-                                            className={
-                                                customer.emailVerified
-                                                    ? 'admin-customer-status verified'
-                                                    : 'admin-customer-status unverified'
-                                            }
-                                        >
-                                            {customer.emailVerified ? 'موثق' : 'غير موثق'}
-                                        </span>
-                                    </td>
 
-                                    <td>
-                                        <span
-                                            className={
-                                                customer.phoneVerified
-                                                    ? 'admin-customer-status verified'
-                                                    : 'admin-customer-status unverified'
-                                            }
-                                        >
-                                            {customer.phoneVerified ? 'موثق' : 'غير موثق'}
-                                        </span>
-                                    </td>
 
                                     <td>
                                         <button
