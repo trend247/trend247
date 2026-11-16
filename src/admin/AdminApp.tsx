@@ -30,6 +30,8 @@ import AdminAddProduct from './AdminAddProduct'
 import AdminCategories from './AdminCategories'
 import AdminOrders from './AdminOrders'
 import AdminCustomers from './AdminCustomers'
+import AdminOffers from './AdminOffers'
+
 import './Admin.css'
 
 type AdminCheck = {
@@ -484,6 +486,9 @@ function AdminApp() {
 
             ) : location.pathname === '/admin/customers' ? (
                 <AdminCustomers />
+
+            ) : location.pathname === '/admin/offers' ? (
+                <AdminOffers />
 
             ) : (
                 <div className="admin-page-placeholder">

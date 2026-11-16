@@ -8686,3 +8686,145 @@ textarea,
     font-size: 15px;
   }
 }
+
+
+/* =====================================
+   عروض وخصومات المنتجات داخل السلة
+===================================== */
+
+.cart-item-pricing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 8px 0;
+}
+
+.cart-item-old-price,
+.cart-item-old-subtotal {
+  color: #999;
+  font-size: 13px;
+  text-decoration: line-through;
+}
+
+.cart-item-price {
+  color: #d89b00;
+  font-size: 17px;
+}
+
+.cart-item-offer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 5px 0 10px;
+  font-size: 12px;
+}
+
+.cart-item-offer-name {
+  color: #16834a;
+  font-weight: 700;
+}
+
+.cart-item-offer-saving {
+  color: #16834a;
+  background: #e9f8ef;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.cart-item-subtotal-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.cart-savings-row {
+  color: #16834a;
+}
+
+.cart-savings-value {
+  color: #16834a;
+}
+
+
+/* =====================================
+   عروض المنتجات في كرت المنتج
+===================================== */
+
+.product-card .offer-badge {
+  background: #e53935;
+  color: #fff;
+  font-weight: 800;
+}
+
+.product-card-offer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 7px 0;
+  color: #16834a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-card .price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+
+/* =====================================
+   عروض كروت المنتجات
+===================================== */
+
+.product-card .discount-badge.offer-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #e53935;
+  color: #fff;
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 6px 9px;
+  z-index: 2;
+}
+
+.product-card .offer-badge strong {
+  font-size: 11px;
+  color: #fff;
+}
+
+.product-card .price.offer-price strong {
+  color: #e53935;
+}
+
+.product-card .price del {
+  color: #999;
+  font-size: 12px;
+}
+
+.product-card-offer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 7px 0 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-card-offer-name {
+  color: #16834a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-card-offer-saving {
+  color: #e53935;
+}
+

@@ -8,6 +8,8 @@ function CartPage() {
     const {
         cartItems,
         cartTotal,
+        cartOriginalTotal,
+        cartOfferDiscount,
         updateQuantity,
         removeFromCart,
     } = useStore()
@@ -46,7 +48,20 @@ function CartPage() {
                 <section className="cart-page-items">
                     {cartItems.map((item) => {
                         const unitPrice = item.unitPrice ?? item.price
+
+                        const originalUnitPrice =
+                            item.originalUnitPrice ?? unitPrice
+
                         const itemTotal = unitPrice * item.quantity
+
+                        const originalItemTotal =
+                            originalUnitPrice * item.quantity
+
+                        const itemSavings =
+                            Math.max(0, originalItemTotal - itemTotal)
+
+                        const hasOffer =
+                            itemSavings > 0 && Boolean(item.offerName)
 
                         const availableStocks = [
                             item.stock,
@@ -81,9 +96,29 @@ function CartPage() {
                                         </p>
                                     )}
 
-                                    <strong className="cart-item-price">
-                                        {unitPrice} ر.س
-                                    </strong>
+                                    <div className="cart-item-pricing">
+                                        {hasOffer && (
+                                            <del className="cart-item-old-price">
+                                                {originalUnitPrice.toFixed(2)} ر.س
+                                            </del>
+                                        )}
+
+                                        <strong className="cart-item-price">
+                                            {unitPrice.toFixed(2)} ر.س
+                                        </strong>
+                                    </div>
+
+                                    {hasOffer && (
+                                        <div className="cart-item-offer">
+                                            <span className="cart-item-offer-name">
+                                                🏷️ {item.offerName}
+                                            </span>
+
+                                            <span className="cart-item-offer-saving">
+                                                وفرت {itemSavings.toFixed(2)} ر.س
+                                            </span>
+                                        </div>
+                                    )}
 
                                     {(item.selectedColor || item.selectedSize) && (
                                         <div className="cart-item-options">
@@ -158,9 +193,17 @@ function CartPage() {
                                     </button>
                                 </div>
 
-                                <strong className="cart-item-subtotal">
-                                    {itemTotal.toFixed(2)} ر.س
-                                </strong>
+                                <div className="cart-item-subtotal-wrapper">
+                                    {hasOffer && (
+                                        <del className="cart-item-old-subtotal">
+                                            {originalItemTotal.toFixed(2)} ر.س
+                                        </del>
+                                    )}
+
+                                    <strong className="cart-item-subtotal">
+                                        {itemTotal.toFixed(2)} ر.س
+                                    </strong>
+                                </div>
                             </article>
                         )
                     })}
@@ -170,7 +213,23 @@ function CartPage() {
                     <h2>ملخص الطلب</h2>
 
                     <div className="checkout-price-row">
-                        <span>مجموع المنتجات</span>
+                        <span>مجموع المنتجات قبل الخصم</span>
+                        <strong>
+                            {cartOriginalTotal.toFixed(2)} ر.س
+                        </strong>
+                    </div>
+
+                    {cartOfferDiscount > 0 && (
+                        <div className="checkout-price-row cart-savings-row">
+                            <span>توفير عروض المنتجات</span>
+                            <strong className="cart-savings-value">
+                                -{cartOfferDiscount.toFixed(2)} ر.س
+                            </strong>
+                        </div>
+                    )}
+
+                    <div className="checkout-price-row">
+                        <span>مجموع المنتجات بعد الخصم</span>
                         <strong>{cartTotal.toFixed(2)} ر.س</strong>
                     </div>
 

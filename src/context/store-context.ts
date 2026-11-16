@@ -27,7 +27,6 @@ export type Product = {
     image: string
 
     description?: string
-     // بيانات تحسين محركات البحث
     seoTitle?: string
     seoSlug?: string
     seoDescription?: string
@@ -56,15 +55,21 @@ export type Product = {
 export type CartItem = Product & {
     quantity: number
 
-    // خيارات العميل عند إضافة المنتج
     selectedColor?: ProductVariant
     selectedSize?: ProductVariant
 
-    // معرّف يميز تركيبة المنتج وخياراته
     variantKey: string
 
-    // السعر النهائي للوحدة وقت الإضافة
+    // السعر النهائي الحالي للوحدة بعد تطبيق العرض
     unitPrice: number
+
+    // السعر قبل تطبيق العرض
+    originalUnitPrice?: number
+
+    // بيانات العرض المطبق
+    offerId?: string
+    offerName?: string
+    offerDiscount?: number
 }
 
 export type StoreContextType = {
@@ -73,6 +78,15 @@ export type StoreContextType = {
     favoritesLoading: boolean
     cartCount: number
     cartTotal: number
+
+    // إجمالي الأسعار قبل العروض
+    cartOriginalTotal: number
+
+    // إجمالي التوفير من عروض المنتجات
+    cartOfferDiscount: number
+
+    // تحديث أسعار السلة
+    refreshCartPrices: () => Promise<void>
 
     addToCart: (
         product: Product,
