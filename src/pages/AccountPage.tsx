@@ -21,6 +21,8 @@ import {
 function AccountPage() {
     const navigate = useNavigate()
     const { user, loading } = useAuth()
+    const userId = user?.uid
+    const userDisplayName = user?.displayName
 
     // تنسيق تاريخ الطلب
     function formatOrderDate(date: UserOrder['createdAt']) {
@@ -84,39 +86,37 @@ function AccountPage() {
     }
     // تحميل طلبات العميل من Firestore
     useEffect(() => {
-        if (loading || !user) return
+        if (loading || !userId) return
 
         let active = true
 
-        if (user) {
-            const loadOrders = async () => {
-                try {
-                    const customerOrders = await getUserOrders(user.uid)
+        const loadOrders = async () => {
+            try {
+                const customerOrders = await getUserOrders(userId)
 
-                    if (active) {
-                        setOrders(customerOrders)
-                        setOrdersError('')
-                    }
-                } catch (error) {
-                    console.error('Error loading orders:', error)
+                if (active) {
+                    setOrders(customerOrders)
+                    setOrdersError('')
+                }
+            } catch (error) {
+                console.error('Error loading orders:', error)
 
-                    if (active) {
-                        setOrdersError('تعذر تحميل طلباتك. حاول تحديث الصفحة.')
-                    }
-                } finally {
-                    if (active) {
-                        setOrdersLoading(false)
-                    }
+                if (active) {
+                    setOrdersError('تعذر تحميل طلباتك. حاول تحديث الصفحة.')
+                }
+            } finally {
+                if (active) {
+                    setOrdersLoading(false)
                 }
             }
-
-            void loadOrders()
         }
+
+        void loadOrders()
 
         return () => {
             active = false
         }
-    }, [user?.uid, loading, ordersRetry])
+    }, [userId, loading, ordersRetry])
 
     // بيانات الحساب
     const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -136,24 +136,22 @@ function AccountPage() {
         }
     }, [loading, user, navigate])
 
-    // تحميل بيانات المستخدم
     // تحميل بيانات المستخدم ومتابعة تحديثها مباشرة
+
     useEffect(() => {
-        if (loading || !user) return
+        if (loading || !userId) return
 
         let active = true
 
         const unsubscribe = subscribeUserProfile(
-            user.uid,
-
+            userId,
             (data) => {
                 if (!active) return
 
                 setProfile(data)
-                setName(data.name || user.displayName || '')
+                setName(data.name || userDisplayName || '')
                 setError('')
             },
-
             (err) => {
                 if (!active) return
 
@@ -169,7 +167,7 @@ function AccountPage() {
             active = false
             unsubscribe()
         }
-    }, [user?.uid, loading])
+    }, [userId, userDisplayName, loading])
     // تحديث اسم المستخدم
     async function handleSaveName(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
