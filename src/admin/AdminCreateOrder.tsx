@@ -1,6 +1,5 @@
 
 import { useEffect, useMemo, useState } from 'react'
-
 import type { FormEvent } from 'react'
 
 import type {
@@ -23,7 +22,7 @@ import {
 } from './services/productService'
 
 import {
-    searchAdminCustomers,
+    getAdminCustomers,
 } from './services/customerService'
 
 import type {
@@ -62,14 +61,25 @@ function formatPrice(price: number) {
     return `${Number(price || 0).toLocaleString('ar-SA')} ر.س`
 }
 
-function toOrderVariant(
-    variant: ProductVariant
-) {
+function toOrderVariant(variant: ProductVariant) {
     return {
         id: variant.id,
         name: variant.name,
         value: variant.value,
     }
+}
+
+// توحيد الأرقام العربية والفارسية والإنجليزية للبحث
+function normalizeCustomerSearch(value: string) {
+    return value
+        .replace(/[٠-٩]/g, (digit) =>
+            String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
+        )
+        .replace(/[۰-۹]/g, (digit) =>
+            String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit))
+        )
+        .trim()
+        .toLowerCase()
 }
 
 function AdminCreateOrder({
@@ -80,6 +90,9 @@ function AdminCreateOrder({
     const [productsLoading, setProductsLoading] = useState(true)
     const [productsError, setProductsError] = useState('')
 
+    const [allCustomers, setAllCustomers] = useState<AdminCustomer[]>([])
+    const [customersLoading, setCustomersLoading] = useState(false)
+
     const [customerType, setCustomerType] =
         useState<CustomerType>('guest')
 
@@ -87,10 +100,6 @@ function AdminCreateOrder({
         useState<OrderCustomer>({ ...initialCustomer })
 
     const [customerSearch, setCustomerSearch] = useState('')
-    const [customerResults, setCustomerResults] =
-        useState<AdminCustomer[]>([])
-
-    const [customerSearching, setCustomerSearching] = useState(false)
     const [selectedCustomerId, setSelectedCustomerId] = useState('')
 
     const [productSearch, setProductSearch] = useState('')
@@ -156,6 +165,44 @@ function AdminCreateOrder({
     }, [])
 
     // =====================================
+    // تحميل العملاء المسجلين
+    // =====================================
+
+    useEffect(() => {
+        let active = true
+
+        async function loadCustomers() {
+            setCustomersLoading(true)
+
+            try {
+                const result = await getAdminCustomers()
+
+                if (active) {
+                    setAllCustomers(result)
+                }
+            } catch (err) {
+                console.error('Load customers error:', err)
+
+                if (active) {
+                    setError(
+                        'تعذر تحميل قائمة العملاء. تحقق من صلاحيات الإدارة.'
+                    )
+                }
+            } finally {
+                if (active) {
+                    setCustomersLoading(false)
+                }
+            }
+        }
+
+        void loadCustomers()
+
+        return () => {
+            active = false
+        }
+    }, [])
+
+    // =====================================
     // التصنيفات المتاحة
     // =====================================
 
@@ -196,56 +243,62 @@ function AdminCreateOrder({
     }, [products, productSearch, categoryFilter])
 
     // =====================================
-    // البحث عن عميل مسجل
+    // البحث التلقائي عن العملاء
     // =====================================
 
-    async function handleCustomerSearch() {
-        const value = customerSearch.trim()
+    const customerResults = useMemo(() => {
+        const value = normalizeCustomerSearch(customerSearch)
 
-        if (value.length < 3) {
-            setError('أدخل بريدًا إلكترونيًا أو رقم هاتف صحيحًا للبحث.')
-            return
+        if (!value || selectedCustomerId) {
+            return []
         }
 
-        setCustomerSearching(true)
-        setError('')
-        setCustomerResults([])
+        const phoneValue = value.replace(/\D/g, '')
 
-        try {
-            const result = await searchAdminCustomers(value)
-            setCustomerResults(result)
+        return allCustomers
+            .filter((found) => {
+                const name = normalizeCustomerSearch(found.name || '')
 
-            if (result.length === 0) {
-                setError('لم يتم العثور على عميل بهذه البيانات.')
-            }
-        } catch (err) {
-            console.error('Search customer error:', err)
-            setError('تعذر البحث عن العميل. تحقق من صلاحيات Firestore.')
-        } finally {
-            setCustomerSearching(false)
-        }
-    }
+                const phone = normalizeCustomerSearch(found.phone || '')
+                    .replace(/\D/g, '')
+
+                const matchesName = name.includes(value)
+
+                const matchesPhone =
+                    phoneValue.length > 0 &&
+                    phone.includes(phoneValue)
+
+                return matchesName || matchesPhone
+            })
+            .slice(0, 8)
+    }, [allCustomers, customerSearch, selectedCustomerId])
+
+    // =====================================
+    // اختيار عميل من الاقتراحات
+    // =====================================
 
     function selectCustomer(found: AdminCustomer) {
         setSelectedCustomerId(found.uid)
 
-        setCustomer({
-            ...initialCustomer,
-            name: found.name,
-            phone: found.phone,
-        })
+        setCustomer((current) => ({
+            ...current,
+            name: found.name || '',
+            phone: found.phone || '',
+        }))
 
-        setCustomerResults([])
         setCustomerSearch('')
         setError('')
     }
+
+    // =====================================
+    // تغيير نوع العميل
+    // =====================================
 
     function changeCustomerType(type: CustomerType) {
         setCustomerType(type)
         setCustomer({ ...initialCustomer })
         setSelectedCustomerId('')
         setCustomerSearch('')
-        setCustomerResults([])
         setError('')
     }
 
@@ -452,6 +505,7 @@ function AdminCreateOrder({
             onCreated()
         } catch (err) {
             console.error('Create admin order error:', err)
+
             setError(
                 'تعذر إنشاء الطلب. تحقق من قواعد Firestore وحاول مرة أخرى.'
             )
@@ -526,53 +580,75 @@ function AdminCreateOrder({
 
                     {customerType === 'registered' && (
                         <div className="admin-create-customer-search">
-                            <label>البحث عن العميل بالبريد أو الهاتف</label>
+                            <label>
+                                البحث عن العميل بالاسم أو رقم الجوال
+                            </label>
 
                             <div className="admin-create-search-row">
                                 <input
                                     type="search"
                                     value={customerSearch}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
                                         setCustomerSearch(event.target.value)
-                                    }
-                                    placeholder="البريد الإلكتروني أو رقم الهاتف"
+                                        setSelectedCustomerId('')
+                                        setError('')
+                                    }}
+                                    placeholder="اكتب اسم العميل أو رقم جواله..."
+                                    autoComplete="off"
                                 />
-
-                                <button
-                                    type="button"
-                                    onClick={() => void handleCustomerSearch()}
-                                    disabled={customerSearching}
-                                >
-                                    {customerSearching
-                                        ? 'جارٍ البحث...'
-                                        : 'بحث'}
-                                </button>
                             </div>
 
-                            {customerResults.length > 0 && (
-                                <div className="admin-create-customer-results">
-                                    {customerResults.map((found) => (
-                                        <button
-                                            type="button"
-                                            key={found.uid}
-                                            onClick={() => selectCustomer(found)}
-                                        >
-                                            <strong>{found.name || 'بدون اسم'}</strong>
-                                            <span>{found.email}</span>
-                                            <span dir="ltr">{found.phone}</span>
-                                        </button>
-                                    ))}
+                            {customersLoading && (
+                                <div className="admin-create-message">
+                                    جارٍ تحميل قائمة العملاء...
                                 </div>
                             )}
 
+                            {!customersLoading &&
+                                customerSearch.trim().length > 0 &&
+                                customerResults.length > 0 && (
+                                    <div className="admin-create-customer-results">
+                                        {customerResults.map((found) => (
+                                            <button
+                                                type="button"
+                                                key={found.uid}
+                                                onClick={() => selectCustomer(found)}
+                                            >
+                                                <strong>
+                                                    {found.name || 'بدون اسم'}
+                                                </strong>
+
+                                                <span dir="ltr">
+                                                    {found.phone || 'لا يوجد رقم جوال'}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
+                            {!customersLoading &&
+                                customerSearch.trim().length > 0 &&
+                                customerResults.length === 0 && (
+                                    <div className="admin-create-message">
+                                        لا يوجد عميل مطابق لبحثك.
+                                    </div>
+                                )}
+
                             {selectedCustomerId && (
                                 <div className="admin-create-selected-customer">
-                                    <span>العميل المحدد: {customer.name}</span>
+                                    <span>
+                                        <strong>تم اختيار العميل:</strong>{' '}
+                                        {customer.name}
+                                    </span>
+
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setSelectedCustomerId('')
-                                            setCustomer({ ...initialCustomer })
+                                            setCustomerSearch('')
+                                            setCustomer({
+                                                ...initialCustomer,
+                                            })
                                         }}
                                     >
                                         تغيير العميل
