@@ -1,3 +1,4 @@
+
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -49,15 +50,21 @@ function phoneToInternalEmail(phone: string): string {
 }
 
 // =====================================
-// إنشاء حساب جديد برقم الجوال وكلمة المرور
+// إنشاء حساب جديد بالاسم ورقم الجوال وكلمة المرور
 // =====================================
 
 export async function registerWithPhonePassword(
+    name: string,
     phone: string,
     password: string
 ) {
+    const cleanName = name.trim()
     const normalizedPhone = normalizePhone(phone)
     const internalEmail = phoneToInternalEmail(normalizedPhone)
+
+    if (cleanName.length < 2 || cleanName.length > 60) {
+        throw new Error('يجب أن يكون الاسم بين حرفين و60 حرفًا.')
+    }
 
     if (password.length < 6) {
         throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.')
@@ -82,8 +89,9 @@ export async function registerWithPhonePassword(
     const newUser = credential.user
 
     try {
+        // حفظ اسم العميل في Firebase Authentication
         await updateProfile(newUser, {
-            displayName: 'عميل TREND247',
+            displayName: cleanName,
         })
 
         // إنشاء ملف العميل وحجز رقم الجوال معًا
@@ -97,7 +105,7 @@ export async function registerWithPhonePassword(
             const userRef = doc(db, 'users', newUser.uid)
 
             transaction.set(userRef, {
-                name: 'عميل TREND247',
+                name: cleanName,
                 email: internalEmail,
                 phone: normalizedPhone,
                 phoneVerified: false,
@@ -170,7 +178,6 @@ export async function loginWithEmail(
 // =====================================
 // التسجيل القديم بالبريد
 // إبقاؤه مؤقتًا لتوافق أي أجزاء أخرى من المشروع
-// لا تستخدمه في واجهة التسجيل الجديدة
 // =====================================
 
 export async function registerWithEmail(
@@ -179,8 +186,13 @@ export async function registerWithEmail(
     password: string,
     phone: string
 ) {
+    const cleanName = name.trim()
     const normalizedPhone = normalizePhone(phone)
     const phoneRef = doc(db, 'phoneIndex', normalizedPhone)
+
+    if (cleanName.length < 2 || cleanName.length > 60) {
+        throw new Error('يجب أن يكون الاسم بين حرفين و60 حرفًا.')
+    }
 
     const phoneSnapshot = await getDoc(phoneRef)
 
@@ -198,7 +210,7 @@ export async function registerWithEmail(
 
     try {
         await updateProfile(newUser, {
-            displayName: name.trim(),
+            displayName: cleanName,
         })
 
         await runTransaction(db, async (transaction) => {
@@ -211,7 +223,7 @@ export async function registerWithEmail(
             const userRef = doc(db, 'users', newUser.uid)
 
             transaction.set(userRef, {
-                name: name.trim(),
+                name: cleanName,
                 email: email.trim(),
                 phone: normalizedPhone,
                 phoneVerified: false,

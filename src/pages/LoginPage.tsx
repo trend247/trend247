@@ -60,6 +60,7 @@ function LoginPage() {
     const [isRegistering, setIsRegistering] = useState(false)
     const [justRegistered, setJustRegistered] = useState(false)
 
+    const [name, setName] = useState('')
     const [country, setCountry] = useState<Country>(countries[0])
     const [phone, setPhone] = useState('')
     const [password, setPassword] = useState('')
@@ -89,11 +90,10 @@ function LoginPage() {
         return null
     }
 
-    // تحويل الرقم المحلي إلى رقم دولي قبل إرساله إلى Firebase
     function getInternationalPhone() {
         let localNumber = toEnglishDigits(phone).replace(/\D/g, '')
 
-        // حذف الصفر المحلي إن أدخله العميل
+        // حذف الصفر المحلي إذا أدخله العميل
         localNumber = localNumber.replace(/^0+/, '')
 
         return `${country.dialCode}${localNumber}`
@@ -108,13 +108,14 @@ function LoginPage() {
 
         try {
             await registerWithPhonePassword(
+                name,
                 getInternationalPhone(),
                 password
             )
 
             setJustRegistered(true)
             setMessage(
-                'أهلاً بك في TREND247! 🎉 تم إنشاء حسابك بنجاح. نتمنى لك تجربة تسوق ممتعة.'
+                `أهلاً بك ${name.trim()} في TREND247! 🎉 تم إنشاء حسابك بنجاح. نتمنى لك تجربة تسوق ممتعة.`
             )
         } catch (err) {
             console.error('Register Error:', err)
@@ -132,7 +133,8 @@ function LoginPage() {
                     'رقم الجوال مستخدم بالفعل. حاول تسجيل الدخول بدلًا من إنشاء حساب جديد.'
                 )
             } else if (
-                firebaseError.message?.includes('الصيغة الدولية')
+                firebaseError.message?.includes('الصيغة الدولية') ||
+                firebaseError.message?.includes('الاسم')
             ) {
                 setError(firebaseError.message)
             } else if (
@@ -234,6 +236,27 @@ function LoginPage() {
                                     : handleLogin
                             }
                         >
+                            {isRegistering && (
+                                <>
+                                    <label>الاسم</label>
+
+                                    <input
+                                        type="text"
+                                        autoComplete="name"
+                                        value={name}
+                                        onChange={e => {
+                                            setName(e.target.value)
+                                            setError('')
+                                            setMessage('')
+                                        }}
+                                        required
+                                        minLength={2}
+                                        maxLength={60}
+                                        placeholder="أدخل اسمك"
+                                    />
+                                </>
+                            )}
+
                             <label>رقم الجوال</label>
 
                             <div className="phone-input-wrapper">
@@ -264,7 +287,7 @@ function LoginPage() {
                                     inputMode="numeric"
                                     autoComplete="tel-national"
                                     value={phone}
-                                    onChange={(e) => {
+                                    onChange={e => {
                                         const value = toEnglishDigits(
                                             e.target.value
                                         ).replace(/[^\d\s-]/g, '')
@@ -308,9 +331,11 @@ function LoginPage() {
                                                         }}
                                                     >
                                                         <span>{item.flag}</span>
+
                                                         <span className="phone-country-name">
                                                             {item.name}
                                                         </span>
+
                                                         <span className="phone-country-code">
                                                             {item.dialCode}
                                                         </span>
@@ -336,7 +361,7 @@ function LoginPage() {
                                         : 'current-password'
                                 }
                                 value={password}
-                                onChange={(e) => {
+                                onChange={e => {
                                     setPassword(e.target.value)
                                     setError('')
                                     setMessage('')
