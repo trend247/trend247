@@ -1,4 +1,3 @@
-
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -24,13 +23,12 @@ import {
 import { auth, db } from '../firebase'
 
 // =====================================
-// توحيد صيغة أرقام الجوال الدولية
+// توحيد صيغة أرقام الجوال
 // =====================================
 
 function normalizePhone(phone: string): string {
     const cleaned = phone.trim().replace(/[\s()-]/g, '')
 
-    // قبول الأرقام بالصيغة الدولية E.164
     if (/^\+[1-9]\d{7,14}$/.test(cleaned)) {
         return cleaned
     }
@@ -41,56 +39,55 @@ function normalizePhone(phone: string): string {
 }
 
 // =====================================
-// إنشاء حساب بالبريد الإلكتروني
+// إنشاء بريد داخلي ثابت من رقم الجوال
+// لا يظهر للعميل ولا يحتاج إلى صندوق بريد
 // =====================================
 
-export async function registerWithEmail(
-    name: string,
-    email: string,
-    password: string,
-    phone: string
+function phoneToInternalEmail(phone: string): string {
+    const digits = phone.replace(/\D/g, '')
+    return `phone.${digits}@accounts.trend247.com`
+}
+
+// =====================================
+// إنشاء حساب جديد برقم الجوال وكلمة المرور
+// =====================================
+
+export async function registerWithPhonePassword(
+    phone: string,
+    password: string
 ) {
     const normalizedPhone = normalizePhone(phone)
+    const internalEmail = phoneToInternalEmail(normalizedPhone)
 
-    // مرجع حجز رقم الجوال
+    if (password.length < 6) {
+        throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.')
+    }
+
     const phoneRef = doc(db, 'phoneIndex', normalizedPhone)
 
-    // =====================================
-    // الفحص الأول: قبل إنشاء حساب Authentication
-    // =====================================
-
+    // فحص ما إذا كان الرقم مستخدمًا
     const phoneSnapshot = await getDoc(phoneRef)
 
     if (phoneSnapshot.exists()) {
         throw new Error('PHONE_ALREADY_REGISTERED')
     }
 
-    // =====================================
-    // إنشاء حساب Authentication
-    // =====================================
-
+    // إنشاء حساب Firebase بالبريد الداخلي
     const credential = await createUserWithEmailAndPassword(
         auth,
-        email.trim(),
+        internalEmail,
         password
     )
 
     const newUser = credential.user
 
     try {
-        // تحديث اسم المستخدم
         await updateProfile(newUser, {
-            displayName: name.trim(),
+            displayName: 'عميل TREND247',
         })
 
-        // =====================================
-        // إنشاء ملف العميل وحجز الرقم بمعاملة واحدة
-        // =====================================
-
+        // إنشاء ملف العميل وحجز رقم الجوال معًا
         await runTransaction(db, async (transaction) => {
-
-            // إعادة فحص الرقم داخل المعاملة
-            // لحماية النظام من التسجيل المتزامن
             const existingPhone = await transaction.get(phoneRef)
 
             if (existingPhone.exists()) {
@@ -99,18 +96,15 @@ export async function registerWithEmail(
 
             const userRef = doc(db, 'users', newUser.uid)
 
-            // إنشاء ملف العميل
             transaction.set(userRef, {
-                name: name.trim(),
-                email: email.trim(),
+                name: 'عميل TREND247',
+                email: internalEmail,
                 phone: normalizedPhone,
                 phoneVerified: false,
                 emailVerified: false,
                 createdAt: serverTimestamp(),
             })
 
-            // حجز رقم الجوال
-            // يجب أن يتطابق مع قواعد Firestore
             transaction.set(phoneRef, {
                 userId: newUser.uid,
                 createdAt: serverTimestamp(),
@@ -118,8 +112,7 @@ export async function registerWithEmail(
         })
 
     } catch (error) {
-
-        // تنظيف حساب Authentication إذا فشلت المعاملة
+        // حذف حساب Firebase الجديد إذا فشل إنشاء ملف العميل
         try {
             await deleteUser(newUser)
         } catch (cleanupError) {
@@ -129,21 +122,36 @@ export async function registerWithEmail(
             )
         }
 
-        // تمرير الخطأ الأصلي دون تحويل أخطاء الصلاحيات
         throw error
     }
 
-    // =====================================
-    // إرسال رابط التحقق من البريد الإلكتروني
-    // =====================================
-
-    await sendEmailVerification(newUser)
-
+    // لا نرسل رسالة تحقق بالبريد الإلكتروني
     return newUser
 }
 
 // =====================================
-// تسجيل الدخول بالبريد الإلكتروني
+// تسجيل الدخول برقم الجوال وكلمة المرور
+// =====================================
+
+export async function loginWithPhonePassword(
+    phone: string,
+    password: string
+) {
+    const normalizedPhone = normalizePhone(phone)
+    const internalEmail = phoneToInternalEmail(normalizedPhone)
+
+    const result = await signInWithEmailAndPassword(
+        auth,
+        internalEmail,
+        password
+    )
+
+    return result.user
+}
+
+// =====================================
+// تسجيل الدخول القديم بالبريد
+// إبقاؤه مؤقتًا لتوافق أي أجزاء أخرى من المشروع
 // =====================================
 
 export async function loginWithEmail(
@@ -160,7 +168,81 @@ export async function loginWithEmail(
 }
 
 // =====================================
-// إرسال رمز SMS لتسجيل الدخول برقم الجوال
+// التسجيل القديم بالبريد
+// إبقاؤه مؤقتًا لتوافق أي أجزاء أخرى من المشروع
+// لا تستخدمه في واجهة التسجيل الجديدة
+// =====================================
+
+export async function registerWithEmail(
+    name: string,
+    email: string,
+    password: string,
+    phone: string
+) {
+    const normalizedPhone = normalizePhone(phone)
+    const phoneRef = doc(db, 'phoneIndex', normalizedPhone)
+
+    const phoneSnapshot = await getDoc(phoneRef)
+
+    if (phoneSnapshot.exists()) {
+        throw new Error('PHONE_ALREADY_REGISTERED')
+    }
+
+    const credential = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+    )
+
+    const newUser = credential.user
+
+    try {
+        await updateProfile(newUser, {
+            displayName: name.trim(),
+        })
+
+        await runTransaction(db, async (transaction) => {
+            const existingPhone = await transaction.get(phoneRef)
+
+            if (existingPhone.exists()) {
+                throw new Error('PHONE_ALREADY_REGISTERED')
+            }
+
+            const userRef = doc(db, 'users', newUser.uid)
+
+            transaction.set(userRef, {
+                name: name.trim(),
+                email: email.trim(),
+                phone: normalizedPhone,
+                phoneVerified: false,
+                emailVerified: false,
+                createdAt: serverTimestamp(),
+            })
+
+            transaction.set(phoneRef, {
+                userId: newUser.uid,
+                createdAt: serverTimestamp(),
+            })
+        })
+
+    } catch (error) {
+        try {
+            await deleteUser(newUser)
+        } catch (cleanupError) {
+            console.error('Account cleanup failed:', cleanupError)
+        }
+
+        throw error
+    }
+
+    await sendEmailVerification(newUser)
+
+    return newUser
+}
+
+// =====================================
+// وظائف ربط رقم الجوال والتحقق عبر SMS
+// إبقاؤها لتوافق الأجزاء الحالية إن كانت تستخدمها
 // =====================================
 
 export async function sendPhoneLoginCode(
@@ -171,10 +253,6 @@ export async function sendPhoneLoginCode(
 
     return signInWithPhoneNumber(auth, cleanPhone, verifier)
 }
-
-// =====================================
-// تأكيد رمز SMS وإتمام تسجيل الدخول
-// =====================================
 
 export async function confirmPhoneLogin(
     confirmation: ConfirmationResult,
@@ -199,10 +277,6 @@ export async function confirmPhoneLogin(
     return user
 }
 
-// =====================================
-// إرسال رمز SMS لربط رقم الجوال بالحساب
-// =====================================
-
 export async function sendPhoneLinkCode(
     phone: string,
     verifier: RecaptchaVerifier
@@ -217,10 +291,6 @@ export async function sendPhoneLinkCode(
 
     return linkWithPhoneNumber(user, cleanPhone, verifier)
 }
-
-// =====================================
-// تأكيد رمز SMS وإتمام ربط رقم الجوال
-// =====================================
 
 export async function confirmPhoneLink(
     confirmation: ConfirmationResult,
@@ -249,7 +319,8 @@ export async function confirmPhoneLink(
 }
 
 // =====================================
-// إعادة تعيين كلمة المرور
+// إعادة تعيين كلمة المرور بالبريد
+// هذه الوظيفة لا تستخدم لحسابات الجوال الجديدة
 // =====================================
 
 export async function resetPassword(email: string) {
@@ -257,7 +328,7 @@ export async function resetPassword(email: string) {
 }
 
 // =====================================
-// تحديث حالة التحقق من البريد الإلكتروني
+// تحديث حالة التحقق من البريد
 // =====================================
 
 export async function refreshEmailVerification() {

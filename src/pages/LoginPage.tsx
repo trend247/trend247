@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 import {
-    loginWithEmail,
-    registerWithEmail,
+    loginWithPhonePassword,
+    registerWithPhonePassword,
 } from '../services/authService'
 
 import { useAuth } from '../context/useAuth'
@@ -34,10 +33,8 @@ function LoginPage() {
     const [isRegistering, setIsRegistering] = useState(false)
     const [justRegistered, setJustRegistered] = useState(false)
 
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
     const [phone, setPhone] = useState('')
+    const [password, setPassword] = useState('')
 
     const [message, setMessage] = useState('')
     const [error, setError] = useState('')
@@ -60,18 +57,20 @@ function LoginPage() {
     if (user && !justRegistered) {
         return null
     }
+
     async function handleRegister(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
+
         setError('')
         setMessage('')
         setBusy(true)
 
         try {
-            await registerWithEmail(name, email, password, phone)
+            await registerWithPhonePassword(phone, password)
 
             setJustRegistered(true)
             setMessage(
-                `أهلاً بك ${name.trim()} في TREND247! 🎉 تم إنشاء حسابك بنجاح، وأرسلنا رسالة تحقق إلى بريدك الإلكتروني. نتمنى لك تجربة تسوق ممتعة.`
+                'أهلاً بك في TREND247! 🎉 تم إنشاء حسابك بنجاح. نتمنى لك تجربة تسوق ممتعة.'
             )
         } catch (err) {
             console.error('Register Error:', err)
@@ -81,16 +80,22 @@ function LoginPage() {
                 message?: string
             }
 
-            console.error('Error Code:', firebaseError.code)
-            console.error('Error Message:', firebaseError.message)
-
             if (
-                firebaseError.message === 'PHONE_ALREADY_REGISTERED'
+                firebaseError.message === 'PHONE_ALREADY_REGISTERED' ||
+                firebaseError.code === 'auth/email-already-in-use'
             ) {
-                setError('رقم الجوال مستخدم بالفعل في حساب آخر.')
+                setError('رقم الجوال مستخدم بالفعل. حاول تسجيل الدخول بدلًا من إنشاء حساب جديد.')
+            } else if (
+                firebaseError.message?.includes('الصيغة الدولية')
+            ) {
+                setError(firebaseError.message)
+            } else if (
+                firebaseError.code === 'auth/weak-password'
+            ) {
+                setError('كلمة المرور ضعيفة. استخدم 6 أحرف أو أكثر.')
             } else {
                 setError(
-                    `تعذر إنشاء الحساب: ${firebaseError.code || firebaseError.message || 'خطأ غير معروف'}`
+                    `تعذر إنشاء الحساب: ${firebaseError.message || firebaseError.code || 'خطأ غير معروف'}`
                 )
             }
         } finally {
@@ -98,34 +103,32 @@ function LoginPage() {
         }
     }
 
-    async function handleEmailLogin(e: FormEvent<HTMLFormElement>) {
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
+
         setError('')
         setMessage('')
-
-        const cleanEmail = email.trim()
-
-        // اكتشاف إدخال رقم جوال بدل البريد الإلكتروني
-        const phonePattern = /^[+\d][\d\s()-]{6,}$/
-
-        if (phonePattern.test(cleanEmail)) {
-            setMessage(
-                '💛 نرحب بك في TREND247! تسجيل الدخول يتطلب استخدام البريد الإلكتروني الذي سجلت به عند إنشاء حسابك، بالإضافة إلى كلمة المرور. رقم الجوال مخصص لبيانات التواصل والطلبات.'
-            )
-            return
-        }
-
         setBusy(true)
 
         try {
-            await loginWithEmail(cleanEmail, password)
+            await loginWithPhonePassword(phone, password)
             navigate(returnPath, { replace: true })
         } catch (err) {
-            console.error(err)
-            setError('تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.')
+            console.error('Login Error:', err)
+
+            setError(
+                'تعذر تسجيل الدخول. تأكد من رقم الجوال وكلمة المرور، أو أنشئ حسابًا جديدًا.'
+            )
         } finally {
             setBusy(false)
         }
+    }
+
+    function switchMode(registering: boolean) {
+        setIsRegistering(registering)
+        setError('')
+        setMessage('')
+        setPassword('')
     }
 
     return (
@@ -143,7 +146,9 @@ function LoginPage() {
                         <button
                             type="button"
                             className="auth-submit"
-                            onClick={() => navigate(returnPath, { replace: true })}
+                            onClick={() =>
+                                navigate(returnPath, { replace: true })
+                            }
                         >
                             {returnPath === '/checkout'
                                 ? 'متابعة إتمام الطلب'
@@ -162,92 +167,70 @@ function LoginPage() {
                             {returnPath === '/checkout'
                                 ? 'سجّل الدخول للمتابعة وإتمام طلبك.'
                                 : isRegistering
-                                    ? 'أنشئ حسابك واستمتع بتجربة التسوق معنا.'
+                                    ? 'أنشئ حسابك وابدأ تجربة التسوق معنا.'
                                     : 'سجل الدخول لمتابعة مشترياتك وحسابك.'}
                         </p>
 
-                        {isRegistering ? (
-                            <form onSubmit={handleRegister}>
-                                <label>الاسم الكامل</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                    minLength={2}
-                                    placeholder="أدخل اسمك الكامل"
-                                />
+                        <form
+                            onSubmit={
+                                isRegistering
+                                    ? handleRegister
+                                    : handleLogin
+                            }
+                        >
+                            <label>رقم الجوال</label>
 
-                                <label>البريد الإلكتروني</label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    placeholder="example@email.com"
-                                />
+                            <input
+                                type="tel"
+                                inputMode="tel"
+                                autoComplete="tel"
+                                value={phone}
+                                onChange={(e) => {
+                                    setPhone(e.target.value)
+                                    setError('')
+                                    setMessage('')
+                                }}
+                                required
+                                placeholder="+9677XXXXXXXX"
+                            />
 
-                                <label>رقم الجوال</label>
-                                <input
-                                    type="tel"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    required
-                                    placeholder="05XXXXXXXX"
-                                />
+                            <label>كلمة المرور</label>
 
-                                <label>كلمة المرور</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={6}
-                                    placeholder="6 أحرف على الأقل"
-                                />
+                            <input
+                                type="password"
+                                autoComplete={
+                                    isRegistering
+                                        ? 'new-password'
+                                        : 'current-password'
+                                }
+                                value={password}
+                                onChange={(e) => {
+                                    setPassword(e.target.value)
+                                    setError('')
+                                    setMessage('')
+                                }}
+                                required
+                                minLength={6}
+                                placeholder={
+                                    isRegistering
+                                        ? '6 أحرف على الأقل'
+                                        : 'أدخل كلمة المرور'
+                                }
+                            />
 
-                                <button
-                                    className="auth-submit"
-                                    disabled={busy}
-                                >
-                                    {busy
+                            <button
+                                className="auth-submit"
+                                disabled={busy}
+                            >
+                                {busy
+                                    ? isRegistering
                                         ? 'جارٍ إنشاء الحساب...'
-                                        : 'إنشاء حساب جديد'}
-                                </button>
-                            </form>
-                        ) : (
-                            <form onSubmit={handleEmailLogin}>
-                                <label>البريد الإلكتروني</label>
-                                <input
-                                    type="text"
-                                    inputMode="email"
-                                    value={email}
-                                    onChange={(e) => {
-                                        setEmail(e.target.value)
-                                        setMessage('')
-                                        setError('')
-                                    }}
-                                    required
-                                    placeholder="example@email.com"
-                                />
-
-                                <label>كلمة المرور</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    placeholder="كلمة المرور"
-                                />
-
-                                <button
-                                    className="auth-submit"
-                                    disabled={busy}
-                                >
-                                    {busy ? 'جارٍ الدخول...' : 'تسجيل الدخول'}
-                                </button>
-                            </form>
-                        )}
+                                        : 'جارٍ تسجيل الدخول...'
+                                    : isRegistering
+                                        ? 'إنشاء حساب جديد'
+                                        : 'تسجيل الدخول'}
+                            </button>
+                        </form>
 
                         {message && (
                             <p className="auth-message">
@@ -267,11 +250,7 @@ function LoginPage() {
                                     لديك حساب بالفعل؟{' '}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setIsRegistering(false)
-                                            setError('')
-                                            setMessage('')
-                                        }}
+                                        onClick={() => switchMode(false)}
                                     >
                                         تسجيل الدخول
                                     </button>
@@ -281,11 +260,7 @@ function LoginPage() {
                                     ليس لديك حساب؟{' '}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setIsRegistering(true)
-                                            setError('')
-                                            setMessage('')
-                                        }}
+                                        onClick={() => switchMode(true)}
                                     >
                                         إنشاء حساب جديد
                                     </button>
