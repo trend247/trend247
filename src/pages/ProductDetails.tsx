@@ -4,6 +4,7 @@ import type {
     Product,
     ProductVariant,
 } from '../context/store-context'
+import { useStore } from '../context/useStore'
 
 type ProductDetailsProps = {
     product: Product
@@ -25,6 +26,8 @@ function ProductDetails({
     onAddToCart,
     onToggleFavorite,
 }: ProductDetailsProps) {
+    const { getProductPricing } = useStore()
+
     const [activeImage, setActiveImage] = useState(0)
     const [imageFailed, setImageFailed] = useState(false)
 
@@ -36,6 +39,10 @@ function ProductDetails({
 
     const [quantity, setQuantity] = useState(1)
     const [addedMessage, setAddedMessage] = useState(false)
+
+    // =====================================
+    // الصور والمعلومات الأساسية
+    // =====================================
 
     const images = Array.from(
         new Set([product.image, ...(product.images ?? [])].filter(Boolean))
@@ -49,6 +56,10 @@ function ProductDetails({
 
     const needsColor = hasColors && !selectedColor
     const needsSize = hasSizes && !selectedSize
+
+    // =====================================
+    // المخزون
+    // =====================================
 
     const availableStocks = [
         product.stock,
@@ -64,21 +75,70 @@ function ProductDetails({
             ? Math.max(0, Math.min(...availableStocks))
             : undefined
 
-    const isOutOfStock = availableStock !== undefined && availableStock <= 0
+    const isOutOfStock =
+        availableStock !== undefined && availableStock <= 0
+
+    // =====================================
+    // حساب الأسعار والعروض
+    // =====================================
 
     const unitPrice =
         selectedSize?.price ??
         selectedColor?.price ??
         product.price
 
-    const hasDiscount =
-        product.oldPrice > product.price && product.oldPrice > 0
+    // حساب السعر من نظام العروض
+    const productPricing = getProductPricing(
+        product,
+        selectedColor,
+        selectedSize
+    )
 
-    const discountPercentage = hasDiscount
-        ? Math.round(
-            ((product.oldPrice - product.price) / product.oldPrice) * 100
-        )
-        : 0
+    // التحقق من وجود خصم يدوي
+    const hasManualDiscount =
+        product.oldPrice > product.price &&
+        product.oldPrice > 0
+
+    // التحقق من وجود عرض ترويجي
+    const hasOfferDiscount =
+        productPricing.offerDiscount > 0 &&
+        Boolean(productPricing.offerName)
+
+    // إعطاء الأولوية للعرض الترويجي
+    const hasDiscount = hasOfferDiscount || hasManualDiscount
+
+    // السعر النهائي
+    const displayedPrice = hasOfferDiscount
+        ? productPricing.unitPrice
+        : unitPrice
+
+    // السعر القديم
+    const displayedOldPrice = hasOfferDiscount
+        ? productPricing.originalUnitPrice
+        : hasManualDiscount
+            ? product.oldPrice
+            : unitPrice
+
+    // قيمة التوفير
+    const savedAmount = Math.max(
+        0,
+        displayedOldPrice - displayedPrice
+    )
+
+    // نسبة الخصم
+    const discountPercentage =
+        hasDiscount && displayedOldPrice > 0
+            ? Math.round(
+                (savedAmount / displayedOldPrice) * 100
+            )
+            : 0
+
+    // اسم العرض
+    const offerName = productPricing.offerName
+
+    // =====================================
+    // معلومات إضافية
+    // =====================================
 
     const conditionLabels = {
         new: 'جديد',
@@ -89,11 +149,19 @@ function ProductDetails({
     const formatPrice = (price: number) =>
         `${price.toLocaleString('ar-SA')} ر.س`
 
+    // =====================================
+    // التحقق من إمكانية الشراء
+    // =====================================
+
     const canAddToCart =
         !needsColor &&
         !needsSize &&
         !isOutOfStock &&
         (availableStock === undefined || quantity <= availableStock)
+
+    // =====================================
+    // إضافة المنتج إلى السلة
+    // =====================================
 
     const handleAddToCart = () => {
         if (!canAddToCart) return
@@ -112,6 +180,10 @@ function ProductDetails({
         }, 2500)
     }
 
+    // =====================================
+    // التحكم بالكمية
+    // =====================================
+
     const decreaseQuantity = () => {
         setQuantity((current) => Math.max(1, current - 1))
     }
@@ -129,12 +201,17 @@ function ProductDetails({
         })
     }
 
+    // =====================================
+    // التحقق من توفر الخيارات
+    // =====================================
+
     const isVariantUnavailable = (variant: ProductVariant) =>
         typeof variant.stock === 'number' && variant.stock <= 0
 
     return (
         <main className="product-details-page pd-page">
             <div className="pd-container">
+
                 <button className="back-to-store pd-back" onClick={onBack}>
                     → العودة إلى المتجر
                 </button>
@@ -148,6 +225,7 @@ function ProductDetails({
                 </div>
 
                 <section className="pd-main">
+
                     {/* معرض الصور */}
                     <div className="pd-gallery">
                         <div className="pd-main-image">
@@ -211,6 +289,7 @@ function ProductDetails({
 
                     {/* معلومات المنتج */}
                     <div className="pd-info">
+
                         <div className="pd-top-labels">
                             <span className="pd-category">
                                 {product.category}
@@ -247,20 +326,30 @@ function ProductDetails({
 
                         {/* السعر */}
                         <div className="pd-price-box">
+
                             <div className="pd-current-price">
-                                {formatPrice(unitPrice)}
+                                {formatPrice(displayedPrice)}
                             </div>
 
                             {hasDiscount && (
                                 <div className="pd-old-price">
-                                    <del>{formatPrice(product.oldPrice)}</del>
+                                    <del>
+                                        {formatPrice(displayedOldPrice)}
+                                    </del>
+
                                     <span>
-                                        وفرت{' '}
-                                        {formatPrice(
-                                            product.oldPrice - product.price
-                                        )}
+                                        وفرت {formatPrice(savedAmount)}
                                     </span>
                                 </div>
+                            )}
+
+                            {hasDiscount && (
+                                <span className="pd-discount-text">
+                                    خصم {discountPercentage}%
+                                    {hasOfferDiscount && offerName && (
+                                        <> · 🏷️ {offerName}</>
+                                    )}
+                                </span>
                             )}
 
                             {product.discount && !hasDiscount && (
@@ -275,9 +364,8 @@ function ProductDetails({
                                         السعر يتضمن الخيار المحدد
                                     </small>
                                 )}
-                        </div>
 
-                        <div className="pd-divider" />
+                        </div>
 
                         {/* المخزون */}
                         <div className="pd-stock-row">
@@ -316,6 +404,7 @@ function ProductDetails({
                             <div className="pd-options pd-select-options">
                                 <div className="pd-option-heading">
                                     <h3>اختر اللون</h3>
+
                                     {selectedColor && (
                                         <span>
                                             اللون المختار: {selectedColor.value}
@@ -333,8 +422,8 @@ function ProductDetails({
                                                 type="button"
                                                 key={color.id}
                                                 className={`pd-choice ${selectedColor?.id === color.id
-                                                        ? 'selected'
-                                                        : ''
+                                                    ? 'selected'
+                                                    : ''
                                                     }`}
                                                 disabled={unavailable}
                                                 onClick={() => {
@@ -382,6 +471,7 @@ function ProductDetails({
                             <div className="pd-options pd-select-options">
                                 <div className="pd-option-heading">
                                     <h3>اختر المقاس</h3>
+
                                     {selectedSize && (
                                         <span>
                                             المقاس المختار: {selectedSize.value}
@@ -399,8 +489,8 @@ function ProductDetails({
                                                 type="button"
                                                 key={size.id}
                                                 className={`pd-choice pd-size-choice ${selectedSize?.id === size.id
-                                                        ? 'selected'
-                                                        : ''
+                                                    ? 'selected'
+                                                    : ''
                                                     }`}
                                                 disabled={unavailable}
                                                 onClick={() => {
@@ -511,15 +601,18 @@ function ProductDetails({
                                 <span>🚚</span>
                                 <p>تجربة تسوق سهلة</p>
                             </div>
+
                             <div>
                                 <span>🔒</span>
                                 <p>تسوق بثقة</p>
                             </div>
+
                             <div>
                                 <span>✨</span>
                                 <p>منتجات مختارة</p>
                             </div>
                         </div>
+
                     </div>
                 </section>
 
@@ -588,6 +681,7 @@ function ProductDetails({
                             </div>
                         </section>
                     )}
+
             </div>
         </main>
     )

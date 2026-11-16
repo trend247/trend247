@@ -9,6 +9,7 @@ import {
     query,
     serverTimestamp,
     setDoc,
+    deleteDoc,
     updateDoc,
 } from 'firebase/firestore'
 
@@ -19,24 +20,16 @@ import type {
     OrderStatus,
     OrderCustomer,
     OrderItem,
+    OrderCoupon,
 } from '../../services/orderService'
 
 // =====================================
 // تحديد مكان الطلب
 // =====================================
 
-function getAdminOrderRef(
-    userId: string,
-    orderId: string
-) {
+function getAdminOrderRef(userId: string, orderId: string) {
     if (userId) {
-        return doc(
-            adminDb,
-            'users',
-            userId,
-            'orders',
-            orderId
-        )
+        return doc(adminDb, 'users', userId, 'orders', orderId)
     }
 
     return doc(adminDb, 'orders', orderId)
@@ -68,6 +61,8 @@ function mapAdminOrder(
     orderId: string,
     data: Record<string, unknown>
 ): UserOrder {
+    const coupon = (data.coupon ?? null) as OrderCoupon | null
+
     return {
         id: orderId,
         orderId:
@@ -90,6 +85,11 @@ function mapAdminOrder(
             typeof data.shippingFee === 'number'
                 ? data.shippingFee
                 : 0,
+        coupon,
+        couponDiscount:
+            typeof data.couponDiscount === 'number'
+                ? data.couponDiscount
+                : coupon?.discountAmount ?? 0,
         total:
             typeof data.total === 'number'
                 ? data.total
@@ -108,7 +108,6 @@ function mapAdminOrder(
 // =====================================
 
 export async function getAdminOrders(): Promise<UserOrder[]> {
-    
     const ordersQuery = query(
         collectionGroup(adminDb, 'orders'),
         orderBy('createdAt', 'desc')
@@ -116,12 +115,9 @@ export async function getAdminOrders(): Promise<UserOrder[]> {
 
     const snapshot = await getDocs(ordersQuery)
 
-    return snapshot.docs.map((orderDoc) => {
-        return mapAdminOrder(
-            orderDoc.id,
-            orderDoc.data()
-        )
-    })
+    return snapshot.docs.map((orderDoc) =>
+        mapAdminOrder(orderDoc.id, orderDoc.data())
+    )
 }
 
 // =====================================
@@ -146,10 +142,7 @@ export async function getAdminCustomerOrders(
     const snapshot = await getDocs(ordersQuery)
 
     return snapshot.docs.map((orderDoc) =>
-        mapAdminOrder(
-            orderDoc.id,
-            orderDoc.data()
-        )
+        mapAdminOrder(orderDoc.id, orderDoc.data())
     )
 }
 
@@ -162,15 +155,11 @@ export async function getAdminOrder(
     orderId: string
 ): Promise<UserOrder | null> {
     const orderRef = getAdminOrderRef(userId, orderId)
-
     const snapshot = await getDoc(orderRef)
 
     if (!snapshot.exists()) return null
 
-    return mapAdminOrder(
-        snapshot.id,
-        snapshot.data()
-    )
+    return mapAdminOrder(snapshot.id, snapshot.data())
 }
 
 // =====================================
@@ -202,6 +191,8 @@ export type AdminOrderUpdate = {
     total: number
     paymentMethod: string
     status: OrderStatus
+    coupon?: OrderCoupon | null
+    couponDiscount?: number
 }
 
 export type AdminOrderContentUpdate = {
@@ -211,6 +202,8 @@ export type AdminOrderContentUpdate = {
     total: number
     paymentMethod: string
     status: OrderStatus
+    coupon?: OrderCoupon | null
+    couponDiscount?: number
 }
 
 // =====================================
@@ -223,7 +216,6 @@ export async function updateAdminOrder(
     order: AdminOrderUpdate
 ): Promise<void> {
     const orderRef = getAdminOrderRef(userId, orderId)
-
     const safeItems = prepareOrderItems(order.items)
 
     await updateDoc(orderRef, {
@@ -238,6 +230,12 @@ export async function updateAdminOrder(
         subtotal: Number(order.subtotal),
         shippingFee: Number(order.shippingFee),
         total: Number(order.total),
+        ...(order.coupon !== undefined && {
+            coupon: order.coupon,
+        }),
+        ...(order.couponDiscount !== undefined && {
+            couponDiscount: Number(order.couponDiscount),
+        }),
         paymentMethod: order.paymentMethod.trim(),
         status: order.status,
         updatedAt: serverTimestamp(),
@@ -277,7 +275,6 @@ export async function updateAdminOrderContent(
     order: AdminOrderContentUpdate
 ): Promise<void> {
     const orderRef = getAdminOrderRef(userId, orderId)
-
     const safeItems = prepareOrderItems(order.items)
 
     await updateDoc(orderRef, {
@@ -285,6 +282,12 @@ export async function updateAdminOrderContent(
         subtotal: Number(order.subtotal),
         shippingFee: Number(order.shippingFee),
         total: Number(order.total),
+        ...(order.coupon !== undefined && {
+            coupon: order.coupon,
+        }),
+        ...(order.couponDiscount !== undefined && {
+            couponDiscount: Number(order.couponDiscount),
+        }),
         paymentMethod: order.paymentMethod.trim(),
         status: order.status,
         updatedAt: serverTimestamp(),
@@ -311,16 +314,12 @@ export async function createAdminOrder(
 ): Promise<string> {
     const userId = order.userId?.trim() ?? ''
 
-    // تحديد مجموعة الطلبات بحسب نوع العميل
     const ordersCollection = userId
         ? collection(adminDb, 'users', userId, 'orders')
         : collection(adminDb, 'orders')
 
-    // إنشاء معرّف فريد من Firestore
     const orderRef = doc(ordersCollection)
-
     const orderId = orderRef.id
-
     const safeItems = prepareOrderItems(order.items)
 
     await setDoc(orderRef, {
@@ -345,6 +344,8 @@ export async function createAdminOrder(
 
         subtotal: Number(order.subtotal),
         shippingFee: Number(order.shippingFee),
+        coupon: null,
+        couponDiscount: 0,
         total: Number(order.total),
 
         paymentMethod: order.paymentMethod.trim(),
@@ -354,4 +355,21 @@ export async function createAdminOrder(
     })
 
     return orderId
+}
+
+
+// =====================================
+// حذف عدة طلبات
+// =====================================
+
+export async function deleteAdminOrders(
+    orders: Array<Pick<UserOrder, 'userId' | 'orderId'>>
+): Promise<void> {
+    await Promise.all(
+        orders.map((order) =>
+            deleteDoc(
+                getAdminOrderRef(order.userId, order.orderId)
+            )
+        )
+    )
 }

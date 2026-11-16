@@ -104,6 +104,10 @@ function AdminOrderDetails({
     const [editingOrder, setEditingOrder] = useState(false)
     const [savingOrder, setSavingOrder] = useState(false)
 
+    // =====================================
+    // حساب المبالغ والخصومات
+    // =====================================
+
     const subtotal = useMemo(
         () =>
             items.reduce(
@@ -116,7 +120,28 @@ function AdminOrderDetails({
         [items]
     )
 
-    const total = subtotal + Number(shippingFee || 0)
+    // الاحتفاظ بخصم الكوبون الأصلي، مع عدم تجاوز مجموع المنتجات
+    const originalCouponDiscount = Number(
+        order.couponDiscount ?? order.coupon?.discountAmount ?? 0
+    )
+
+    const couponDiscount = Math.min(
+        Math.max(0, originalCouponDiscount),
+        subtotal
+    )
+
+    const total =
+        subtotal -
+        couponDiscount +
+        Number(shippingFee || 0)
+
+    // تحديث مبلغ الخصم داخل بيانات الكوبون عند الحفظ
+    const updatedCoupon = order.coupon
+        ? {
+            ...order.coupon,
+            discountAmount: couponDiscount,
+        }
+        : null
 
     // =====================================
     // تعديل بيانات العميل
@@ -323,6 +348,8 @@ function AdminOrderDetails({
                     items: updatedItems,
                     subtotal,
                     shippingFee,
+                    coupon: updatedCoupon,
+                    couponDiscount,
                     total,
                     paymentMethod,
                     status,
@@ -334,6 +361,8 @@ function AdminOrderDetails({
                 items: updatedItems,
                 subtotal,
                 shippingFee,
+                coupon: updatedCoupon,
+                couponDiscount,
                 total,
                 paymentMethod,
                 status,
@@ -526,9 +555,7 @@ function AdminOrderDetails({
                 <div className="admin-order-detail-card-header">
                     <div>
                         <h3>المنتجات المطلوبة</h3>
-                        <p>
-                            {items.length} منتج في هذا الطلب
-                        </p>
+                        <p>{items.length} منتج في هذا الطلب</p>
                     </div>
 
                     {!editingOrder && (
@@ -576,11 +603,7 @@ function AdminOrderDetails({
                                                     <input
                                                         value={item.name}
                                                         onChange={(e) =>
-                                                            changeItem(
-                                                                index,
-                                                                'name',
-                                                                e.target.value
-                                                            )
+                                                            changeItem(index, 'name', e.target.value)
                                                         }
                                                         required
                                                     />
@@ -593,11 +616,7 @@ function AdminOrderDetails({
                                                         dir="ltr"
                                                         value={item.image}
                                                         onChange={(e) =>
-                                                            changeItem(
-                                                                index,
-                                                                'image',
-                                                                e.target.value
-                                                            )
+                                                            changeItem(index, 'image', e.target.value)
                                                         }
                                                     />
                                                 </label>
@@ -608,12 +627,7 @@ function AdminOrderDetails({
                                                         <input
                                                             value={item.selectedColor?.name ?? ''}
                                                             onChange={(e) =>
-                                                                changeVariant(
-                                                                    index,
-                                                                    'selectedColor',
-                                                                    'name',
-                                                                    e.target.value
-                                                                )
+                                                                changeVariant(index, 'selectedColor', 'name', e.target.value)
                                                             }
                                                         />
                                                     </label>
@@ -623,12 +637,7 @@ function AdminOrderDetails({
                                                         <input
                                                             value={item.selectedColor?.value ?? ''}
                                                             onChange={(e) =>
-                                                                changeVariant(
-                                                                    index,
-                                                                    'selectedColor',
-                                                                    'value',
-                                                                    e.target.value
-                                                                )
+                                                                changeVariant(index, 'selectedColor', 'value', e.target.value)
                                                             }
                                                         />
                                                     </label>
@@ -638,12 +647,7 @@ function AdminOrderDetails({
                                                         <input
                                                             value={item.selectedSize?.name ?? ''}
                                                             onChange={(e) =>
-                                                                changeVariant(
-                                                                    index,
-                                                                    'selectedSize',
-                                                                    'name',
-                                                                    e.target.value
-                                                                )
+                                                                changeVariant(index, 'selectedSize', 'name', e.target.value)
                                                             }
                                                         />
                                                     </label>
@@ -653,12 +657,7 @@ function AdminOrderDetails({
                                                         <input
                                                             value={item.selectedSize?.value ?? ''}
                                                             onChange={(e) =>
-                                                                changeVariant(
-                                                                    index,
-                                                                    'selectedSize',
-                                                                    'value',
-                                                                    e.target.value
-                                                                )
+                                                                changeVariant(index, 'selectedSize', 'value', e.target.value)
                                                             }
                                                         />
                                                     </label>
@@ -701,11 +700,7 @@ function AdminOrderDetails({
                                                         step="0.01"
                                                         value={item.price}
                                                         onChange={(e) =>
-                                                            changeItem(
-                                                                index,
-                                                                'price',
-                                                                e.target.value
-                                                            )
+                                                            changeItem(index, 'price', e.target.value)
                                                         }
                                                     />
                                                 </label>
@@ -718,11 +713,7 @@ function AdminOrderDetails({
                                                         step="1"
                                                         value={item.quantity}
                                                         onChange={(e) =>
-                                                            changeItem(
-                                                                index,
-                                                                'quantity',
-                                                                e.target.value
-                                                            )
+                                                            changeItem(index, 'quantity', e.target.value)
                                                         }
                                                     />
                                                 </label>
@@ -846,6 +837,20 @@ function AdminOrderDetails({
                     <span>مجموع المنتجات</span>
                     <strong>{formatPrice(subtotal)}</strong>
                 </div>
+
+                {couponDiscount > 0 && (
+                    <div className="admin-order-money-row">
+                        <span>
+                            خصم الكوبون
+                            {order.coupon?.code && (
+                                <small> ({order.coupon.code})</small>
+                            )}
+                        </span>
+                        <strong className="admin-order-coupon-discount">
+                            - {formatPrice(couponDiscount)}
+                        </strong>
+                    </div>
+                )}
 
                 <div className="admin-order-money-row">
                     <span>رسوم الشحن</span>
