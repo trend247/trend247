@@ -9,12 +9,47 @@ type ProductCardProps = {
 }
 
 function ProductCard({ product, onSelect }: ProductCardProps) {
-    const { favorites, toggleFavorite, addToCart } = useStore()
+    const {
+        favorites,
+        toggleFavorite,
+        addToCart,
+        getProductPricing,
+    } = useStore()
 
     const [justAdded, setJustAdded] = useState(false)
     const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const isFavorite = favorites.includes(product.id)
+
+    // حساب السعر حسب العرض الساري
+    const pricing = getProductPricing(product)
+
+    const hasOffer =
+        Boolean(pricing.offerId) &&
+        pricing.offerDiscount > 0
+
+    // الخصم اليدوي المسجل على المنتج
+    const hasManualDiscount =
+        !hasOffer &&
+        product.oldPrice > product.price &&
+        product.price > 0
+
+    const hasDiscount = hasOffer || hasManualDiscount
+
+    const currentPrice = hasOffer
+        ? pricing.unitPrice
+        : product.price
+
+    const originalPrice = hasOffer
+        ? pricing.originalUnitPrice
+        : product.oldPrice
+
+    const discountPercentage =
+        hasDiscount && originalPrice > 0
+            ? Math.round(
+                ((originalPrice - currentPrice) / originalPrice) * 100
+            )
+            : 0
 
     useEffect(() => {
         return () => {
@@ -47,13 +82,22 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
                     className="product-details-trigger"
                     onClick={() => onSelect(product)}
                     aria-label={`عرض تفاصيل ${product.name}`}
+                    type="button"
                 >
                     <img src={product.image} alt={product.name} />
                 </button>
 
-                <span className="discount-badge">
-                    خصم {product.discount}
-                </span>
+                {hasOffer && (
+                    <span className="discount-badge offer-badge">
+                        🔥 عرض خاص {discountPercentage}%
+                    </span>
+                )}
+
+                {!hasOffer && hasManualDiscount && (
+                    <span className="discount-badge">
+                        خصم {product.discount || `${discountPercentage}%`}
+                    </span>
+                )}
 
                 <button
                     className={`favorite-button ${isFavorite ? 'liked' : ''}`}
@@ -72,6 +116,7 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
                     <button
                         className="product-name-trigger"
                         onClick={() => onSelect(product)}
+                        type="button"
                     >
                         {product.name}
                     </button>
@@ -82,9 +127,21 @@ function ProductCard({ product, onSelect }: ProductCardProps) {
                 </div>
 
                 <div className="price">
-                    <strong>{product.price} ر.س</strong>
-                    <del>{product.oldPrice} ر.س</del>
+                    <strong>{currentPrice.toFixed(2)} ر.س</strong>
+
+                    {hasDiscount && (
+                        <del>{originalPrice.toFixed(2)} ر.س</del>
+                    )}
                 </div>
+
+                {hasOffer && (
+                    <div className="product-card-offer-info">
+                        <span>🏷️ {pricing.offerName}</span>
+                        <span>
+                            وفّر {pricing.offerDiscount.toFixed(2)} ر.س
+                        </span>
+                    </div>
+                )}
 
                 <button
                     className={`add-button ${justAdded ? 'added' : ''}`}

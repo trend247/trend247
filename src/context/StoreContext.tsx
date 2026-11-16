@@ -21,8 +21,8 @@ import {
     StoreContext,
     type CartItem,
     type Product,
+    type ProductPricing,
     type ProductVariant,
-    
 } from './store-context'
 
 const CART_STORAGE_KEY = 'trend247-cart'
@@ -57,18 +57,19 @@ function roundPrice(price: number): number {
 }
 
 // حساب سعر المنتج بعد تطبيق أفضل عرض متاح
+
 function calculateProductPricing(
-    productId: number,
+    product: Product,
     basePrice: number,
     offers: StoreOffer[]
-) {
+): ProductPricing {
     let bestPrice = basePrice
     let bestOffer: StoreOffer | undefined
 
     const applicableOffers = offers.filter(
         (offer) =>
             offer.isActive &&
-            offer.productIds.includes(productId)
+            offer.productIds.includes(product.id)
     )
 
     for (const offer of applicableOffers) {
@@ -97,6 +98,7 @@ function calculateProductPricing(
         offerDiscount: roundPrice(basePrice - bestPrice),
     }
 }
+
 
 // تحديد الحد الأقصى للمخزون المتاح للتركيبة المختارة
 function getAvailableStock(
@@ -252,6 +254,28 @@ export function StoreProvider({
     }, [])
 
     // =====================================
+    // حساب سعر منتج واحد
+    // =====================================
+
+    function getProductPricing(
+        product: Product,
+        selectedColor?: ProductVariant,
+        selectedSize?: ProductVariant
+    ): ProductPricing {
+        const basePrice = getBaseUnitPrice(
+            product,
+            selectedColor,
+            selectedSize
+        )
+
+        return calculateProductPricing(
+            product,
+            basePrice,
+            activeOffers
+        )
+    }
+
+    // =====================================
     // حساب أسعار السلة حسب العروض
     // =====================================
 
@@ -267,7 +291,7 @@ export function StoreProvider({
             )
 
             const pricing = calculateProductPricing(
-                item.id,
+                item,
                 basePrice,
                 offers
             )
@@ -490,16 +514,10 @@ export function StoreProvider({
             selectedSize
         )
 
-        const basePrice = getBaseUnitPrice(
+        const pricing = getProductPricing(
             product,
             selectedColor,
             selectedSize
-        )
-
-        const pricing = calculateProductPricing(
-            product.id,
-            basePrice,
-            activeOffers
         )
 
         const availableStock = getAvailableStock(
@@ -680,6 +698,8 @@ export function StoreProvider({
                 cartTotal,
                 cartOriginalTotal,
                 cartOfferDiscount,
+
+                getProductPricing,
 
                 addToCart,
                 updateQuantity,

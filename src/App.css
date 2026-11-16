@@ -8828,3 +8828,1038 @@ textarea,
   color: #e53935;
 }
 
+
+/* =====================================
+   تنسيق عروض كرت المنتج
+===================================== */
+
+.product-card .discount-badge.offer-badge {
+  background: #e53935;
+  color: #fff;
+  font-weight: 800;
+}
+
+.product-card-offer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 7px 0;
+  color: #16834a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.product-card .price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-card .price del {
+  color: #999;
+  font-size: 12px;
+}
+
+/* Coupon - Cart */
+.cart-coupon-section {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.cart-coupon-section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.cart-coupon-input {
+  display: flex;
+  gap: 8px;
+}
+
+.cart-coupon-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  font-family: inherit;
+  text-align: right;
+}
+
+.cart-coupon-input button,
+.cart-applied-coupon button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: #ffc107;
+  color: #1a1a1a;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cart-coupon-input button:disabled,
+.cart-applied-coupon button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cart-applied-coupon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cart-applied-coupon p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.cart-coupon-discount {
+  color: #16834a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cart-coupon-saving-row strong {
+  color: #16834a;
+}
+
+.cart-coupon-error,
+.cart-coupon-success {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.cart-coupon-error {
+  color: #d32f2f;
+}
+
+.cart-coupon-success {
+  color: #16834a;
+}
+
+
+/* تحسين حقل إدخال كوبون الخصم */
+.cart-coupon-section {
+  padding: 18px;
+}
+
+.cart-coupon-section h3 {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.cart-coupon-input {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.cart-coupon-input input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 15px;
+  border: 1px solid #d5d5d5;
+  border-radius: 9px;
+  background: #fff;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cart-coupon-input input:focus {
+  border-color: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.15);
+}
+
+.cart-coupon-input input::placeholder {
+  color: #999;
+}
+
+.cart-coupon-input button {
+  flex-shrink: 0;
+  min-width: 100px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 9px;
+  background: #ffc107;
+  color: #1a1a1a;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.cart-coupon-input button:hover:not(:disabled) {
+  background: #e5ac00;
+}
+
+.cart-coupon-input button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (max-width: 480px) {
+  .cart-coupon-section {
+    padding: 14px;
+  }
+
+  .cart-coupon-input {
+    flex-direction: column;
+  }
+
+  .cart-coupon-input input,
+  .cart-coupon-input button {
+    width: 100%;
+    height: 46px;
+  }
+}
+
+
+
+/* إعادة ترتيب قسم كوبون الخصم */
+.cart-coupon-section {
+  display: block !important;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.cart-coupon-section h3 {
+  display: block !important;
+  width: 100%;
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.cart-coupon-input {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px;
+  width: 100%;
+}
+
+.cart-coupon-input input {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  text-align: right;
+}
+
+.cart-coupon-input input:focus {
+  outline: none;
+  border-color: #ffc107;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.13);
+}
+
+.cart-coupon-input button {
+  display: block;
+  width: 100% !important;
+  min-width: 0;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 15px;
+  border: none;
+  border-radius: 8px;
+  background: #ffc107;
+  color: #1a1a1a;
+  font-family: 'Cairo', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cart-coupon-input button:hover:not(:disabled) {
+  background: #e5ac00;
+}
+
+.cart-coupon-input button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   TREND247 - Order Success Page
+========================================= */
+
+.success-page {
+  max-width: 850px;
+  margin: 45px auto;
+  padding: 0 20px 55px;
+  color: #252d28;
+}
+
+/* رسالة النجاح */
+
+.success-hero {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.success-icon-wrapper {
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eaf7ef;
+  border: 1px solid #d1ebda;
+  box-shadow: 0 8px 25px rgba(29, 132, 75, 0.09);
+}
+
+.success-icon {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #218b50;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 700;
+  box-shadow: 0 5px 14px rgba(33, 139, 80, 0.2);
+}
+
+.success-eyebrow {
+  display: block;
+  color: #218b50;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 9px;
+}
+
+.success-hero h1 {
+  color: #176b43;
+  font-size: 27px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+
+.success-hero>p {
+  max-width: 510px;
+  margin: 0 auto;
+  color: #78817b;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.success-order-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 19px;
+  padding: 10px 17px;
+  border: 1px solid #dceee2;
+  border-radius: 9px;
+  background: #f3faf5;
+}
+
+.success-order-number span {
+  color: #7b8c80;
+  font-size: 12px;
+}
+
+.success-order-number strong {
+  color: #176b43;
+  font-size: 14px;
+  font-weight: 800;
+  direction: ltr;
+}
+
+/* حالة الطلب */
+
+.success-status-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 17px 19px;
+  margin-bottom: 19px;
+  border: 1px solid #d8ecdf;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #f1faf4, #eaf6ee);
+}
+
+.success-status-icon {
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #d8f0e0;
+  color: #18834b;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.success-status-card>div:nth-child(2) {
+  flex: 1;
+}
+
+.success-status-card>div strong {
+  display: block;
+  color: #216d43;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.success-status-card p {
+  color: #75887b;
+  font-size: 12px;
+  margin: 0;
+}
+
+.success-status-badge {
+  padding: 7px 12px;
+  border-radius: 20px;
+  background: #dff2e5;
+  color: #197a45;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* الحاوية الموحدة */
+
+.success-content {
+  display: block;
+  padding: 7px 26px;
+  background: #fff;
+  border: 1px solid #e8eee9;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(30, 65, 43, 0.045);
+}
+
+.success-order-card,
+.success-payment-card {
+  margin: 0;
+  padding: 23px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.success-order-card+.success-order-card,
+.success-payment-card {
+  border-top: 1px solid #edf0ed;
+}
+
+/* عناوين الأقسام */
+
+.success-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.success-section-icon {
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #edf7f0;
+  font-size: 17px;
+}
+
+.success-section-heading h2 {
+  margin: 0 0 5px;
+  color: #29352d;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.success-section-heading p {
+  margin: 0;
+  color: #9aA29c;
+  font-size: 12px;
+}
+
+/* معلومات العميل والعنوان */
+
+.success-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 19px 28px;
+}
+
+.success-info-item {
+  min-width: 0;
+}
+
+.success-info-full {
+  grid-column: 1 / -1;
+}
+
+.success-info-item span {
+  display: block;
+  margin-bottom: 7px;
+  color: #929b94;
+  font-size: 12px;
+}
+
+.success-info-item strong {
+  display: block;
+  color: #343e37;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+/* قائمة المنتجات */
+
+.success-products-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.success-product-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f2f0;
+}
+
+.success-product-item:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.success-product-image {
+  width: 66px;
+  height: 66px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f5f7f5;
+  color: #8c998f;
+  font-size: 22px;
+}
+
+.success-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.success-product-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.success-product-details>strong {
+  color: #303a33;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.success-product-details>span {
+  color: #89928b;
+  font-size: 11px;
+}
+
+.success-product-price {
+  flex-shrink: 0;
+  color: #21834d;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ملخص الحساب */
+
+.success-price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.success-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #7d867f;
+  font-size: 13px;
+}
+
+.success-price-row strong {
+  color: #39423b;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.success-discount-row span,
+.success-discount-row strong {
+  color: #18834b;
+}
+
+.success-price-divider {
+  width: 100%;
+  border-top: 1px dashed #dfe8e1;
+  margin: 2px 0;
+}
+
+.success-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #26352b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.success-total-row strong {
+  color: #16834a;
+  font-size: 22px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* طريقة الدفع */
+
+.success-payment-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.success-payment-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f0f7f2;
+  font-size: 19px;
+}
+
+.success-payment-card>div:nth-child(2) {
+  flex: 1;
+}
+
+.success-payment-card>div strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #303a33;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.success-payment-card p {
+  margin: 0;
+  color: #89928b;
+  font-size: 12px;
+}
+
+.success-payment-check {
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e8f6ed;
+  color: #18834b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* الأزرار */
+
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.success-primary-button {
+  min-height: 49px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 27px;
+  border: 1px solid #18834b;
+  border-radius: 9px;
+  background: #18834b;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.success-primary-button:hover {
+  background: #126b3c;
+  transform: translateY(-2px);
+}
+
+.success-primary-button span {
+  font-size: 18px;
+}
+
+.success-actions>p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: #929b94;
+  font-size: 12px;
+}
+
+.success-actions>p strong {
+  color: #21834d;
+  font-weight: 800;
+}
+
+/* صفحة عدم وجود طلب */
+
+.success-empty-page {
+  max-width: 500px;
+  margin: 80px auto;
+  padding: 35px 22px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e9eee9;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(30, 65, 43, 0.045);
+}
+
+.success-empty-icon {
+  width: 55px;
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 17px;
+  border-radius: 50%;
+  background: #fff5e9;
+  color: #c17b28;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.success-empty-page h2 {
+  color: #303a33;
+  font-size: 20px;
+  margin: 0 0 10px;
+}
+
+.success-empty-page p {
+  color: #89928b;
+  font-size: 13px;
+  margin: 0 0 22px;
+}
+
+/* الجوال */
+
+@media (max-width: 600px) {
+  .success-page {
+    margin: 25px auto;
+    padding: 0 14px 40px;
+  }
+
+  .success-icon-wrapper {
+    width: 78px;
+    height: 78px;
+  }
+
+  .success-icon {
+    width: 55px;
+    height: 55px;
+    font-size: 29px;
+  }
+
+  .success-hero h1 {
+    font-size: 22px;
+  }
+
+  .success-hero>p {
+    font-size: 13px;
+  }
+
+  .success-status-card {
+    padding: 13px;
+    gap: 9px;
+  }
+
+  .success-status-badge {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .success-content {
+    padding: 4px 16px;
+    border-radius: 11px;
+  }
+
+  .success-order-card,
+  .success-payment-card {
+    padding: 20px 0;
+  }
+
+  .success-section-heading {
+    gap: 10px;
+    margin-bottom: 17px;
+  }
+
+  .success-section-heading h2 {
+    font-size: 15px;
+  }
+
+  .success-info-grid {
+    gap: 16px 12px;
+  }
+
+  .success-info-item strong {
+    font-size: 13px;
+  }
+
+  .success-product-item {
+    gap: 10px;
+  }
+
+  .success-product-image {
+    width: 55px;
+    height: 55px;
+  }
+
+  .success-product-details>strong {
+    font-size: 12px;
+  }
+
+  .success-product-price {
+    font-size: 12px;
+  }
+
+  .success-price-row {
+    font-size: 12px;
+  }
+
+  .success-total-row strong {
+    font-size: 19px;
+  }
+
+  .success-primary-button {
+    width: 100%;
+  }
+}
+
+/* =====================================
+   قسم نجاح الطلب
+===================================== */
+
+.success-hero {
+  position: relative;
+  padding: 32px 20px 29px;
+  margin-bottom: 25px;
+  overflow: hidden;
+  border: 1px solid #d9eddf;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f3fbf5, #ffffff 75%);
+  box-shadow: 0 10px 30px rgba(25, 112, 61, 0.07);
+}
+
+.success-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #a8dbb8, #16834a);
+}
+
+.success-icon-wrapper {
+  background: #e3f5e9;
+  border-color: #c8e9d2;
+  box-shadow: 0 8px 24px rgba(22, 131, 74, 0.12);
+}
+
+.success-icon {
+  background: linear-gradient(145deg, #269b5b, #147640);
+  box-shadow: 0 5px 15px rgba(22, 131, 74, 0.22);
+}
+
+.success-hero h1 {
+  color: #176b43;
+}
+
+.success-order-number {
+  margin-top: 21px;
+  padding: 12px 20px;
+  background: #eaf7ee;
+  border-color: #cce8d5;
+}
+
+/* =====================================
+   زر فتح وإغلاق التفاصيل
+===================================== */
+
+.success-details-toggle {
+  width: 100%;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 19px;
+  margin: 0 0 15px;
+  text-align: right;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.success-details-toggle:hover {
+  background: #eaf7ef;
+  border-color: #c4e5ce;
+}
+
+.success-details-toggle-text {
+  flex: 1;
+}
+
+.success-details-toggle-text strong {
+  display: block;
+  color: #176b43;
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.success-details-toggle-text p {
+  margin: 0;
+  color: #7d8d81;
+  font-size: 12px;
+}
+
+.success-details-toggle .success-status-icon {
+  background: #d9f0e1;
+  color: #16834a;
+}
+
+.success-details-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #dff1e5;
+  color: #18834b;
+  font-size: 20px;
+  transition: transform 0.25s ease;
+}
+
+.success-details-arrow.open {
+  transform: rotate(180deg);
+}
+
+.success-details-toggle .success-status-badge {
+  white-space: nowrap;
+}
+
+/* =====================================
+   ظهور تفاصيل الطلب
+===================================== */
+
+.success-content {
+  animation: successDetailsReveal 0.25s ease;
+  transform-origin: top;
+}
+
+@keyframes successDetailsReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* الجوال */
+
+@media (max-width: 600px) {
+  .success-hero {
+    padding: 27px 15px 24px;
+    border-radius: 13px;
+  }
+
+  .success-details-toggle {
+    min-height: 72px;
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .success-details-toggle-text strong {
+    font-size: 13px;
+  }
+
+  .success-details-toggle-text p {
+    font-size: 10px;
+  }
+
+  .success-details-toggle .success-status-badge {
+    font-size: 9px;
+    padding: 6px 8px;
+  }
+
+  .success-details-arrow {
+    width: 26px;
+    height: 26px;
+  }
+}

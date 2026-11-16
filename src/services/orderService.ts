@@ -42,6 +42,16 @@ export type OrderItem = {
     selectedSize?: OrderVariant | null
 }
 
+// بيانات الكوبون المستخدم في الطلب
+export type OrderCoupon = {
+    couponId: string
+    code: string
+    name: string
+    discountType: 'percentage' | 'fixed'
+    discountValue: number
+    discountAmount: number
+}
+
 export type OrderStatus =
     | 'قيد المراجعة'
     | 'قيد التجهيز'
@@ -55,9 +65,18 @@ export type UserOrder = {
     userId: string
     customer: OrderCustomer
     items: OrderItem[]
+
+    // إجمالي المنتجات بعد تطبيق عروض المنتجات
     subtotal: number
+
+    // بيانات خصم الكوبون
+    coupon?: OrderCoupon | null
+    couponDiscount?: number
+
+    // الشحن والإجمالي النهائي
     shippingFee: number
     total: number
+
     paymentMethod: string
     status: OrderStatus
     createdAt: Timestamp | null
@@ -117,6 +136,8 @@ export async function getUserOrders(
             customer: data.customer,
             items: data.items,
             subtotal: data.subtotal,
+            coupon: data.coupon ?? null,
+            couponDiscount: data.couponDiscount ?? 0,
             shippingFee: data.shippingFee,
             total: data.total,
             paymentMethod: data.paymentMethod,

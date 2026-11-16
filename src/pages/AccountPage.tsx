@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import {
     getUserOrders,
     type UserOrder,
 } from '../services/orderService'
+
 import { useAuth } from '../context/useAuth'
 
 import {
@@ -14,15 +16,18 @@ import {
     subscribeUserProfile,
 } from '../services/userService'
 
-import {
-    logout,
-} from '../services/authService'
+import { logout } from '../services/authService'
 
 function AccountPage() {
     const navigate = useNavigate()
     const { user, loading } = useAuth()
     const userId = user?.uid
     const userDisplayName = user?.displayName
+
+    // تنسيق الأسعار
+    function formatPrice(price: number) {
+        return `${(price || 0).toLocaleString('ar-SA')} ر.س`
+    }
 
     // تنسيق تاريخ الطلب
     function formatOrderDate(date: UserOrder['createdAt']) {
@@ -52,7 +57,6 @@ function AccountPage() {
             current === orderId ? null : orderId
         )
     }
-
 
     // مراحل تتبع الطلب
     const orderSteps = [
@@ -84,6 +88,7 @@ function AccountPage() {
                 return 'status-review'
         }
     }
+
     // تحميل طلبات العميل من Firestore
     useEffect(() => {
         if (loading || !userId) return
@@ -128,7 +133,6 @@ function AccountPage() {
     const [message, setMessage] = useState('')
     const [error, setError] = useState('')
 
-
     // إعادة التوجيه إذا لم يكن المستخدم مسجلاً
     useEffect(() => {
         if (!loading && !user) {
@@ -137,7 +141,6 @@ function AccountPage() {
     }, [loading, user, navigate])
 
     // تحميل بيانات المستخدم ومتابعة تحديثها مباشرة
-
     useEffect(() => {
         if (loading || !userId) return
 
@@ -168,6 +171,7 @@ function AccountPage() {
             unsubscribe()
         }
     }, [userId, userDisplayName, loading])
+
     // تحديث اسم المستخدم
     async function handleSaveName(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -193,8 +197,6 @@ function AccountPage() {
             setBusy(false)
         }
     }
-
-    // إرسال رمز ربط الجوال
 
     // تسجيل الخروج
     async function handleLogout() {
@@ -440,6 +442,25 @@ function AccountPage() {
                                 {orders.map((order) => {
                                     const isOpen = openOrderId === order.id
 
+                                    // حساب المبالغ مع دعم الطلبات القديمة
+                                    const itemsSubtotal = order.items.reduce(
+                                        (sum, item) =>
+                                            sum + (
+                                                item.subtotal ??
+                                                item.price * item.quantity
+                                            ),
+                                        0
+                                    )
+
+                                    const subtotal = order.subtotal ?? itemsSubtotal
+
+                                    const couponDiscount =
+                                        order.couponDiscount ??
+                                        order.coupon?.discountAmount ??
+                                        0
+
+                                    const shippingFee = order.shippingFee ?? 0
+
                                     return (
                                         <article
                                             className={`account-order-item ${isOpen ? 'is-open' : ''}`}
@@ -474,7 +495,7 @@ function AccountPage() {
                                                     </span>
 
                                                     <strong className="account-order-total">
-                                                        {order.total.toLocaleString('ar-SA')} ر.س
+                                                        {formatPrice(order.total)}
                                                     </strong>
 
                                                     <span
@@ -542,68 +563,99 @@ function AccountPage() {
                                                             </div>
                                                         </div>
                                                     )}
+
                                                     {/* المنتجات */}
                                                     <div className="account-order-products">
-                                                        {order.items.map((item, index) => (
-                                                            <div
-                                                                className="account-order-product"
-                                                                key={`${item.id}-${index}`}
-                                                            >
-                                                                <img
-                                                                    src={item.image}
-                                                                    alt={item.name}
-                                                                />
+                                                        {order.items.map((item, index) => {
+                                                            const itemTotal =
+                                                                item.subtotal ??
+                                                                item.price * item.quantity
 
-                                                                <div className="account-order-product-info">
-                                                                    <strong>{item.name}</strong>
+                                                            return (
+                                                                <div
+                                                                    className="account-order-product"
+                                                                    key={`${item.id}-${item.variantKey ?? ''}-${index}`}
+                                                                >
+                                                                    <img
+                                                                        src={item.image}
+                                                                        alt={item.name}
+                                                                    />
 
-                                                                    <small>
-                                                                        الكمية: {item.quantity}
-                                                                    </small>
+                                                                    <div className="account-order-product-info">
+                                                                        <strong>{item.name}</strong>
 
-                                                                    {item.selectedColor && (
                                                                         <small>
-                                                                            اللون: {
-                                                                                typeof item.selectedColor === 'string'
-                                                                                    ? item.selectedColor
-                                                                                    : item.selectedColor.name
-                                                                            }
+                                                                            الكمية: {item.quantity}
                                                                         </small>
-                                                                    )}
 
-                                                                    {item.selectedSize && (
                                                                         <small>
-                                                                            المقاس: {
-                                                                                typeof item.selectedSize === 'string'
-                                                                                    ? item.selectedSize
-                                                                                    : item.selectedSize.name
-                                                                            }
+                                                                            سعر الوحدة: {formatPrice(item.price)}
                                                                         </small>
-                                                                    )}
+
+                                                                        {item.selectedColor && (
+                                                                            <small>
+                                                                                اللون: {
+                                                                                    typeof item.selectedColor === 'string'
+                                                                                        ? item.selectedColor
+                                                                                        : item.selectedColor.name
+                                                                                }
+                                                                            </small>
+                                                                        )}
+
+                                                                        {item.selectedSize && (
+                                                                            <small>
+                                                                                المقاس: {
+                                                                                    typeof item.selectedSize === 'string'
+                                                                                        ? item.selectedSize
+                                                                                        : item.selectedSize.name
+                                                                                }
+                                                                            </small>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <b>
+                                                                        {formatPrice(itemTotal)}
+                                                                    </b>
                                                                 </div>
-
-                                                                <b>
-                                                                    {(item.price * item.quantity).toLocaleString('ar-SA')} ر.س
-                                                                </b>
-                                                            </div>
-                                                        ))}
+                                                            )
+                                                        })}
                                                     </div>
 
-                                                    {/* المبالغ */}
+                                                    {/* ملخص المبالغ */}
                                                     <div className="account-order-details">
+
                                                         <div>
                                                             <span>مجموع المنتجات</span>
                                                             <strong>
-                                                                {order.subtotal.toLocaleString('ar-SA')} ر.س
+                                                                {formatPrice(subtotal)}
                                                             </strong>
                                                         </div>
 
+                                                        {/* خصم الكوبون */}
+                                                        {couponDiscount > 0 && (
+                                                            <div className="account-order-coupon-row">
+                                                                <span>
+                                                                    <span>خصم الكوبون</span>
+                                                                    {order.coupon?.code && (
+                                                                        <small>
+                                                                            {order.coupon.code}
+                                                                        </small>
+                                                                    )}
+                                                                </span>
+
+                                                                <strong>
+                                                                    - {formatPrice(couponDiscount)}
+                                                                </strong>
+                                                            </div>
+                                                        )}
+
+                                                        {/* الشحن */}
                                                         <div>
                                                             <span>رسوم الشحن</span>
                                                             <strong>
-                                                                {order.shippingFee === 0
+                                                                {shippingFee === 0
                                                                     ? 'مجاني'
-                                                                    : `${order.shippingFee.toLocaleString('ar-SA')} ر.س`}
+                                                                    : formatPrice(shippingFee)}
                                                             </strong>
                                                         </div>
 
@@ -617,7 +669,7 @@ function AccountPage() {
                                                         <div className="account-order-grand-total">
                                                             <span>الإجمالي النهائي</span>
                                                             <strong>
-                                                                {order.total.toLocaleString('ar-SA')} ر.س
+                                                                {formatPrice(order.total)}
                                                             </strong>
                                                         </div>
                                                     </div>

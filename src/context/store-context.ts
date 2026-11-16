@@ -52,6 +52,15 @@ export type Product = {
     sortOrder?: number
 }
 
+// معلومات السعر بعد احتساب العرض
+export type ProductPricing = {
+    originalUnitPrice: number
+    unitPrice: number
+    offerId?: string
+    offerName?: string
+    offerDiscount: number
+}
+
 export type CartItem = Product & {
     quantity: number
 
@@ -84,6 +93,13 @@ export type StoreContextType = {
 
     // إجمالي التوفير من عروض المنتجات
     cartOfferDiscount: number
+
+    // حساب سعر المنتج بعد تطبيق العرض
+    getProductPricing: (
+        product: Product,
+        selectedColor?: ProductVariant,
+        selectedSize?: ProductVariant
+    ) => ProductPricing
 
     // تحديث أسعار السلة
     refreshCartPrices: () => Promise<void>

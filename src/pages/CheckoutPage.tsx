@@ -8,6 +8,11 @@ import { useAuth } from '../context/useAuth'
 import { getUserProfile } from '../services/userService'
 import { saveUserOrder } from '../services/orderService'
 
+import {
+    validateCoupon,
+    type AppliedCoupon,
+} from '../services/couponService'
+
 type SectionId = 'customer' | 'address' | 'notes' | 'payment'
 
 type Customer = {
@@ -16,6 +21,21 @@ type Customer = {
     city: string
     address: string
     notes: string
+}
+
+const COUPON_STORAGE_KEY = 'trend247-applied-coupon'
+
+function getSavedCoupon(): AppliedCoupon | null {
+    try {
+        const saved = localStorage.getItem(COUPON_STORAGE_KEY)
+
+        return saved
+            ? JSON.parse(saved) as AppliedCoupon
+            : null
+    } catch {
+        localStorage.removeItem(COUPON_STORAGE_KEY)
+        return null
+    }
 }
 
 function CheckoutPage() {
@@ -34,10 +54,24 @@ function CheckoutPage() {
 
     const [submitting, setSubmitting] = useState(false)
 
+    const [appliedCoupon, setAppliedCoupon] =
+        useState<AppliedCoupon | null>(getSavedCoupon)
+
+    const [couponError, setCouponError] = useState('')
+
+    const couponDiscount =
+        appliedCoupon?.discountAmount ?? 0
+
     const shippingFee =
         cartTotal < FREE_SHIPPING_LIMIT ? SHIPPING_FEE : 0
 
-    const finalTotal = cartTotal + shippingFee
+    const subtotalAfterCoupon = Math.max(
+        0,
+        cartTotal - couponDiscount
+    )
+
+    const finalTotal =
+        subtotalAfterCoupon + shippingFee
 
     const [customer, setCustomer] = useState<Customer>(() => {
         const defaultCustomer: Customer = {
@@ -67,7 +101,7 @@ function CheckoutPage() {
     })
 
     const [activeSection, setActiveSection] =
-        useState<SectionId>('customer')
+        useState<SectionId | null>('customer')
 
     const [completedSections, setCompletedSections] =
         useState<SectionId[]>([])
@@ -84,6 +118,7 @@ function CheckoutPage() {
         async function loadCustomerName() {
             try {
                 const profile = await getUserProfile()
+
                 const profileName =
                     profile.name || currentUser.displayName
 
@@ -175,8 +210,12 @@ function CheckoutPage() {
     }
 
     // فتح القسم
+    // فتح وإغلاق الأقسام عند الضغط عليها
     function toggleSection(section: SectionId) {
-        setActiveSection(section)
+        setActiveSection((current) =>
+            current === section ? null : section
+        )
+
         setSaveMessage('')
     }
 
@@ -212,56 +251,106 @@ function CheckoutPage() {
         }
 
         setSubmitting(true)
-        setSaveMessage('جارٍ تأكيد طلبك وحفظه...')
-
-        const orderId = `TR-${Date.now()}`
-
-        // تجهيز المنتجات مع اللون والمقاس والسعر النهائي
-        const orderItems = cartItems.map((item) => {
-            const unitPrice =
-                item.unitPrice ?? item.price
-
-            return {
-                id: item.id,
-                variantKey: item.variantKey ?? String(item.id),
-                name: item.name,
-                image: item.image,
-
-                price: unitPrice,
-                quantity: item.quantity,
-                subtotal: unitPrice * item.quantity,
-
-                selectedColor: item.selectedColor
-                    ? {
-                        id: item.selectedColor.id,
-                        name: item.selectedColor.name,
-                        value: item.selectedColor.value,
-                    }
-                    : null,
-
-                selectedSize: item.selectedSize
-                    ? {
-                        id: item.selectedSize.id,
-                        name: item.selectedSize.name,
-                        value: item.selectedSize.value,
-                    }
-                    : null,
-            }
-        })
-
-        const order = {
-            orderId,
-            userId: user.uid,
-            customer,
-            items: orderItems,
-            subtotal: cartTotal,
-            shippingFee,
-            total: finalTotal,
-            paymentMethod: 'الدفع عند الاستلام',
-            status: 'قيد المراجعة' as const,
-        }
+        setSaveMessage('جارٍ التحقق من الكوبون وتجهيز طلبك...')
+        setCouponError('')
 
         try {
+            // إعادة التحقق من الكوبون قبل إنشاء الطلب
+            let verifiedCoupon: AppliedCoupon | null = null
+
+            const savedCoupon = getSavedCoupon()
+
+            if (savedCoupon) {
+                verifiedCoupon = await validateCoupon(
+                    savedCoupon.code,
+                    user.uid,
+                    cartTotal
+                )
+
+                setAppliedCoupon(verifiedCoupon)
+
+                localStorage.setItem(
+                    COUPON_STORAGE_KEY,
+                    JSON.stringify(verifiedCoupon)
+                )
+            } else {
+                setAppliedCoupon(null)
+            }
+
+            const verifiedCouponDiscount =
+                verifiedCoupon?.discountAmount ?? 0
+
+            const verifiedFinalTotal =
+                Math.max(
+                    0,
+                    cartTotal - verifiedCouponDiscount
+                ) + shippingFee
+
+            const orderId = `TR-${Date.now()}`
+
+            // تجهيز المنتجات مع اللون والمقاس والسعر النهائي
+            const orderItems = cartItems.map((item) => {
+                const unitPrice =
+                    item.unitPrice ?? item.price
+
+                return {
+                    id: item.id,
+                    variantKey: item.variantKey ?? String(item.id),
+                    name: item.name,
+                    image: item.image,
+
+                    price: unitPrice,
+                    quantity: item.quantity,
+                    subtotal: unitPrice * item.quantity,
+
+                    selectedColor: item.selectedColor
+                        ? {
+                            id: item.selectedColor.id,
+                            name: item.selectedColor.name,
+                            value: item.selectedColor.value,
+                        }
+                        : null,
+
+                    selectedSize: item.selectedSize
+                        ? {
+                            id: item.selectedSize.id,
+                            name: item.selectedSize.name,
+                            value: item.selectedSize.value,
+                        }
+                        : null,
+                }
+            })
+
+            const order = {
+                orderId,
+                userId: user.uid,
+                customer,
+                items: orderItems,
+
+                subtotal: cartTotal,
+                shippingFee,
+
+                coupon: verifiedCoupon
+                    ? {
+                        couponId: verifiedCoupon.couponId,
+                        code: verifiedCoupon.code,
+                        name: verifiedCoupon.name,
+                        discountType: verifiedCoupon.discountType,
+                        discountValue: verifiedCoupon.discountValue,
+                        discountAmount: verifiedCoupon.discountAmount,
+                    }
+                    : null,
+
+                couponDiscount: verifiedCouponDiscount,
+
+                total: verifiedFinalTotal,
+
+                paymentMethod: 'الدفع عند الاستلام',
+                status: 'قيد المراجعة' as const,
+            }
+
+            setSaveMessage('جارٍ حفظ طلبك...')
+
             // حفظ الطلب في Firestore أولاً
             await saveUserOrder(order)
 
@@ -275,6 +364,7 @@ function CheckoutPage() {
             )
 
             localStorage.removeItem('trend247-checkout-customer')
+            localStorage.removeItem(COUPON_STORAGE_KEY)
 
             // تفريغ السلة بعد نجاح حفظ الطلب
             cartItems.forEach((item) => {
@@ -290,6 +380,14 @@ function CheckoutPage() {
             setSaveMessage(
                 'تعذر تأكيد الطلب حاليًا. لم يتم تفريغ سلتك، حاول مرة أخرى.'
             )
+
+            if (getSavedCoupon()) {
+                setCouponError(
+                    error instanceof Error
+                        ? error.message
+                        : 'تعذر التحقق من الكوبون'
+                )
+            }
         } finally {
             setSubmitting(false)
         }
@@ -679,6 +777,12 @@ function CheckoutPage() {
                         </div>
                     </section>
 
+                    {couponError && (
+                        <div className="checkout-save-message">
+                            {couponError}
+                        </div>
+                    )}
+
                     {saveMessage && (
                         <div className="checkout-save-message">
                             {saveMessage}
@@ -752,7 +856,7 @@ function CheckoutPage() {
                                         </span>
 
                                         <strong>
-                                            {unitPrice * item.quantity} ر.س
+                                            {(unitPrice * item.quantity).toFixed(2)} ر.س
                                         </strong>
                                     </div>
                                 </div>
@@ -763,9 +867,21 @@ function CheckoutPage() {
                     <hr />
 
                     <div className="checkout-price-row">
-                        <span>مجموع المنتجات</span>
-                        <strong>{cartTotal} ر.س</strong>
+                        <span>مجموع المنتجات بعد عروض المنتجات</span>
+                        <strong>{cartTotal.toFixed(2)} ر.س</strong>
                     </div>
+
+                    {appliedCoupon && (
+                        <div className="checkout-price-row cart-coupon-saving-row">
+                            <span>
+                                خصم الكوبون ({appliedCoupon.code})
+                            </span>
+
+                            <strong>
+                                -{couponDiscount.toFixed(2)} ر.س
+                            </strong>
+                        </div>
+                    )}
 
                     <div className="checkout-price-row">
                         <span>رسوم الشحن</span>
@@ -775,7 +891,9 @@ function CheckoutPage() {
                                 مجاني
                             </strong>
                         ) : (
-                            <strong>{shippingFee} ر.س</strong>
+                            <strong>
+                                {shippingFee.toFixed(2)} ر.س
+                            </strong>
                         )}
                     </div>
 
@@ -796,11 +914,11 @@ function CheckoutPage() {
 
                     <div className="cart-total checkout-final-total">
                         <span>الإجمالي النهائي</span>
-                        <strong>{finalTotal} ر.س</strong>
+                        <strong>{finalTotal.toFixed(2)} ر.س</strong>
                     </div>
 
                     <p className="checkout-summary-footer">
-                        السعر النهائي شامل رسوم الشحن
+                        السعر النهائي شامل الخصومات ورسوم الشحن
                     </p>
                 </aside>
             </div>
