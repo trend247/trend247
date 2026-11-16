@@ -8298,3 +8298,135 @@ textarea,
   user-select: text;
   -webkit-touch-callout: default;
 }
+
+/* اختيار مفتاح الدولة في صفحة تسجيل الدخول */
+.phone-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  direction: rtl;
+}
+
+.phone-country-button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 112px;
+  padding: 0 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+  color: #1a1a1a;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.phone-country-flag {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.phone-country-arrow {
+  color: #777;
+  font-size: 12px;
+}
+
+.phone-number-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.phone-country-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 1000;
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+.phone-country-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 11px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+}
+
+.phone-country-search:focus {
+  border-color: #ffc107;
+}
+
+.phone-country-list {
+  max-height: 245px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.phone-country-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #1a1a1a;
+  text-align: right;
+  font: inherit;
+  cursor: pointer;
+}
+
+.phone-country-option:hover,
+.phone-country-option.selected {
+  background: #fff6d8;
+}
+
+.phone-country-option>span:first-child {
+  font-size: 21px;
+}
+
+.phone-country-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.phone-country-code {
+  color: #777;
+  direction: ltr;
+  font-size: 13px;
+}
+
+.phone-country-empty {
+  padding: 12px;
+  color: #777;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 380px) {
+  .phone-country-button {
+    min-width: 100px;
+    padding: 0 8px;
+    gap: 5px;
+  }
+
+  .phone-input-wrapper {
+    gap: 6px;
+  }
+}

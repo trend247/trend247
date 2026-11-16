@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -8,6 +9,32 @@ import {
 } from '../services/authService'
 
 import { useAuth } from '../context/useAuth'
+
+type Country = {
+    name: string
+    flag: string
+    dialCode: string
+}
+
+const countries: Country[] = [
+    { name: 'السعودية', flag: '🇸🇦', dialCode: '+966' },
+    { name: 'اليمن', flag: '🇾🇪', dialCode: '+967' },
+    { name: 'الإمارات', flag: '🇦🇪', dialCode: '+971' },
+    { name: 'الكويت', flag: '🇰🇼', dialCode: '+965' },
+    { name: 'قطر', flag: '🇶🇦', dialCode: '+974' },
+    { name: 'البحرين', flag: '🇧🇭', dialCode: '+973' },
+    { name: 'عُمان', flag: '🇴🇲', dialCode: '+968' },
+]
+
+function toEnglishDigits(value: string) {
+    return value
+        .replace(/[٠-٩]/g, digit =>
+            String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit))
+        )
+        .replace(/[۰-۹]/g, digit =>
+            String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit))
+        )
+}
 
 function LoginPage() {
     const navigate = useNavigate()
@@ -33,8 +60,12 @@ function LoginPage() {
     const [isRegistering, setIsRegistering] = useState(false)
     const [justRegistered, setJustRegistered] = useState(false)
 
+    const [country, setCountry] = useState<Country>(countries[0])
     const [phone, setPhone] = useState('')
     const [password, setPassword] = useState('')
+
+    const [countryMenuOpen, setCountryMenuOpen] = useState(false)
+    const [countrySearch, setCountrySearch] = useState('')
 
     const [message, setMessage] = useState('')
     const [error, setError] = useState('')
@@ -58,6 +89,16 @@ function LoginPage() {
         return null
     }
 
+    // تحويل الرقم المحلي إلى رقم دولي قبل إرساله إلى Firebase
+    function getInternationalPhone() {
+        let localNumber = toEnglishDigits(phone).replace(/\D/g, '')
+
+        // حذف الصفر المحلي إن أدخله العميل
+        localNumber = localNumber.replace(/^0+/, '')
+
+        return `${country.dialCode}${localNumber}`
+    }
+
     async function handleRegister(e: FormEvent<HTMLFormElement>) {
         e.preventDefault()
 
@@ -66,7 +107,10 @@ function LoginPage() {
         setBusy(true)
 
         try {
-            await registerWithPhonePassword(phone, password)
+            await registerWithPhonePassword(
+                getInternationalPhone(),
+                password
+            )
 
             setJustRegistered(true)
             setMessage(
@@ -84,7 +128,9 @@ function LoginPage() {
                 firebaseError.message === 'PHONE_ALREADY_REGISTERED' ||
                 firebaseError.code === 'auth/email-already-in-use'
             ) {
-                setError('رقم الجوال مستخدم بالفعل. حاول تسجيل الدخول بدلًا من إنشاء حساب جديد.')
+                setError(
+                    'رقم الجوال مستخدم بالفعل. حاول تسجيل الدخول بدلًا من إنشاء حساب جديد.'
+                )
             } else if (
                 firebaseError.message?.includes('الصيغة الدولية')
             ) {
@@ -111,13 +157,17 @@ function LoginPage() {
         setBusy(true)
 
         try {
-            await loginWithPhonePassword(phone, password)
+            await loginWithPhonePassword(
+                getInternationalPhone(),
+                password
+            )
+
             navigate(returnPath, { replace: true })
         } catch (err) {
             console.error('Login Error:', err)
 
             setError(
-                'تعذر تسجيل الدخول. تأكد من رقم الجوال وكلمة المرور، أو أنشئ حسابًا جديدًا.'
+                'تعذر تسجيل الدخول. تأكد من مفتاح الدولة ورقم الجوال وكلمة المرور، أو أنشئ حسابًا جديدًا.'
             )
         } finally {
             setBusy(false)
@@ -129,7 +179,13 @@ function LoginPage() {
         setError('')
         setMessage('')
         setPassword('')
+        setCountryMenuOpen(false)
     }
+
+    const filteredCountries = countries.filter(countryItem =>
+        countryItem.name.includes(countrySearch) ||
+        countryItem.dialCode.includes(countrySearch)
+    )
 
     return (
         <main className="shopping-page auth-page" dir="rtl">
@@ -180,19 +236,95 @@ function LoginPage() {
                         >
                             <label>رقم الجوال</label>
 
-                            <input
-                                type="tel"
-                                inputMode="tel"
-                                autoComplete="tel"
-                                value={phone}
-                                onChange={(e) => {
-                                    setPhone(e.target.value)
-                                    setError('')
-                                    setMessage('')
-                                }}
-                                required
-                                placeholder="+9677XXXXXXXX"
-                            />
+                            <div className="phone-input-wrapper">
+                                <button
+                                    type="button"
+                                    className="phone-country-button"
+                                    onClick={() => {
+                                        setCountryMenuOpen(!countryMenuOpen)
+                                        setCountrySearch('')
+                                    }}
+                                    aria-label="اختيار الدولة ومفتاح الاتصال"
+                                    aria-expanded={countryMenuOpen}
+                                >
+                                    <span className="phone-country-flag">
+                                        {country.flag}
+                                    </span>
+
+                                    <span>{country.dialCode}</span>
+
+                                    <span className="phone-country-arrow">
+                                        ▾
+                                    </span>
+                                </button>
+
+                                <input
+                                    className="phone-number-input"
+                                    type="tel"
+                                    inputMode="numeric"
+                                    autoComplete="tel-national"
+                                    value={phone}
+                                    onChange={(e) => {
+                                        const value = toEnglishDigits(
+                                            e.target.value
+                                        ).replace(/[^\d\s-]/g, '')
+
+                                        setPhone(value)
+                                        setError('')
+                                        setMessage('')
+                                    }}
+                                    required
+                                    placeholder="أدخل رقم الجوال"
+                                />
+
+                                {countryMenuOpen && (
+                                    <div className="phone-country-menu">
+                                        <input
+                                            type="search"
+                                            className="phone-country-search"
+                                            placeholder="ابحث عن الدولة..."
+                                            value={countrySearch}
+                                            onChange={e =>
+                                                setCountrySearch(e.target.value)
+                                            }
+                                            autoFocus
+                                        />
+
+                                        <div className="phone-country-list">
+                                            {filteredCountries.length > 0 ? (
+                                                filteredCountries.map(item => (
+                                                    <button
+                                                        type="button"
+                                                        key={item.dialCode}
+                                                        className={`phone-country-option ${country.dialCode === item.dialCode
+                                                                ? 'selected'
+                                                                : ''
+                                                            }`}
+                                                        onClick={() => {
+                                                            setCountry(item)
+                                                            setCountryMenuOpen(false)
+                                                            setCountrySearch('')
+                                                            setError('')
+                                                        }}
+                                                    >
+                                                        <span>{item.flag}</span>
+                                                        <span className="phone-country-name">
+                                                            {item.name}
+                                                        </span>
+                                                        <span className="phone-country-code">
+                                                            {item.dialCode}
+                                                        </span>
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <p className="phone-country-empty">
+                                                    لا توجد دولة بهذا الاسم
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <label>كلمة المرور</label>
 
