@@ -6,16 +6,10 @@ import {
     getUserOrders,
     type UserOrder,
 } from '../services/orderService'
-import {
-    sendEmailVerification,
-} from 'firebase/auth'
-
-import { auth } from '../firebase'
 import { useAuth } from '../context/useAuth'
 
 import {
     updateUserName,
-    syncEmailVerification,
     type UserProfile,
     subscribeUserProfile,
 } from '../services/userService'
@@ -202,78 +196,6 @@ function AccountPage() {
         }
     }
 
-    // إرسال رسالة التحقق من البريد مع معالجة أخطاء إعادة تحميل المستخدم
-    async function handleSendVerification() {
-        if (!user) return
-
-        setBusy(true)
-        setError('')
-        setMessage('')
-
-        try {
-            await user.reload()
-
-            const currentUser = auth.currentUser
-
-            if (!currentUser) {
-                throw new Error('AUTH_USER_NOT_FOUND')
-            }
-
-            if (currentUser.emailVerified) {
-                setMessage('بريدك الإلكتروني موثّق بالفعل ✓')
-                return
-            }
-
-            await sendEmailVerification(currentUser)
-            setMessage('تم إرسال رسالة التحقق إلى بريدك الإلكتروني.')
-        } catch (err) {
-            console.error('Email verification error:', err)
-
-            setError(
-                'تعذر إرسال رسالة التحقق. تحقق من اتصالك بالإنترنت وحاول لاحقًا.'
-            )
-        } finally {
-            setBusy(false)
-        }
-    }
-
-    // فحص حالة التحقق من البريد
-    async function handleCheckVerification() {
-        if (!user) return
-
-        setBusy(true)
-        setError('')
-        setMessage('')
-
-        try {
-            await user.reload()
-
-            const currentUser = auth.currentUser
-
-            if (!currentUser?.emailVerified) {
-                setMessage(
-                    'لم يتم تأكيد البريد بعد. افتح رابط التحقق الذي وصلك، ثم حاول مجددًا.'
-                )
-                return
-            }
-
-            await syncEmailVerification()
-
-            setProfile((current) =>
-                current
-                    ? { ...current, emailVerified: true }
-                    : current
-            )
-
-            setMessage('تم توثيق بريدك الإلكتروني بنجاح! ✓')
-        } catch (err) {
-            console.error('Email verification check error:', err)
-            setError('تم فحص البريد، لكن تعذر تحديث بيانات الحساب.')
-        } finally {
-            setBusy(false)
-        }
-    }
-
     // إرسال رمز ربط الجوال
 
     // تسجيل الخروج
@@ -322,18 +244,55 @@ function AccountPage() {
                     <p className="account-message">{message}</p>
                 )}
 
-                <section className="account-card">
-                    <h2>المعلومات الشخصية</h2>
+                <section className="account-card account-profile-card">
+                    <div className="account-profile-heading">
+                        <div>
+                            <small>بياناتك الشخصية</small>
+                            <h2>معلومات الحساب</h2>
+                            <p>يمكنك الاطلاع على بياناتك وتحديث اسمك.</p>
+                        </div>
+
+                        <span className="account-profile-heading-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+                            </svg>
+                        </span>
+                    </div>
 
                     {profile ? (
-                        <>
-                            {/* الاسم */}
+                        <div className="account-profile-content">
+                            <div className="account-profile-identity">
+                                <div className="account-profile-avatar">
+                                    {(profile.name || user.displayName || 'ع')
+                                        .trim()
+                                        .charAt(0)}
+                                </div>
+
+                                <div className="account-profile-identity-info">
+                                    <small>مرحباً بك في TREND247</small>
+                                    <strong>
+                                        {profile.name || 'عميل TREND247'}
+                                    </strong>
+                                    <span>عضو في متجر ترند247</span>
+                                </div>
+                            </div>
+
+                            <div className="account-profile-divider" />
+
                             {editing ? (
                                 <form
                                     onSubmit={handleSaveName}
-                                    className="account-edit-form"
+                                    className="account-profile-edit"
                                 >
-                                    <label htmlFor="account-name">الاسم</label>
+                                    <label htmlFor="account-name">الاسم الكامل</label>
 
                                     <input
                                         id="account-name"
@@ -342,16 +301,17 @@ function AccountPage() {
                                         required
                                         minLength={2}
                                         maxLength={60}
+                                        placeholder="أدخل اسمك"
                                     />
 
-                                    <div className="account-actions">
+                                    <div className="account-profile-edit-actions">
                                         <button type="submit" disabled={busy}>
-                                            {busy ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
+                                            {busy ? 'جارٍ الحفظ...' : 'حفظ الاسم'}
                                         </button>
 
                                         <button
                                             type="button"
-                                            className="account-cancel"
+                                            className="account-profile-cancel"
                                             onClick={() => {
                                                 setName(profile.name || '')
                                                 setEditing(false)
@@ -362,72 +322,62 @@ function AccountPage() {
                                     </div>
                                 </form>
                             ) : (
-                                <div className="account-info-row">
-                                    <div>
-                                        <small>الاسم</small>
-                                        <strong>
-                                            {profile.name || 'لم تتم إضافة اسم'}
-                                        </strong>
+                                <div className="account-profile-details">
+                                    <div className="account-profile-detail">
+                                        <span className="account-profile-detail-icon">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.7"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <circle cx="12" cy="8" r="4" />
+                                                <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+                                            </svg>
+                                        </span>
+
+                                        <div>
+                                            <small>الاسم</small>
+                                            <strong>
+                                                {profile.name || 'لم تتم إضافة اسم'}
+                                            </strong>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="account-profile-edit-button"
+                                            onClick={() => setEditing(true)}
+                                        >
+                                            تعديل
+                                        </button>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditing(true)}
-                                    >
-                                        تعديل الاسم
-                                    </button>
+                                    <div className="account-profile-detail">
+                                        <span className="account-profile-detail-icon">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.7"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <path d="M5 3h4l2 5-3 2a16 16 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2Z" />
+                                            </svg>
+                                        </span>
+
+                                        <div>
+                                            <small>رقم الجوال</small>
+                                            <strong dir="ltr">
+                                                {profile.phone || user.phoneNumber || 'غير مضاف'}
+                                            </strong>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
-
-                            {/* البريد الإلكتروني */}
-                            <div className="account-info-row">
-                                <div>
-                                    <small>البريد الإلكتروني</small>
-                                    <strong>{user.email || 'غير متوفر'}</strong>
-                                </div>
-
-                                <span
-                                    className={
-                                        user.emailVerified ? 'verified' : 'not-verified'
-                                    }
-                                >
-                                    {user.emailVerified ? 'موثّق ✓' : 'غير موثّق'}
-                                </span>
-                            </div>
-
-                            {!user.emailVerified && user.email && (
-                                <div className="verification-actions">
-                                    <button
-                                        type="button"
-                                        onClick={handleSendVerification}
-                                        disabled={busy}
-                                    >
-                                        إرسال رسالة التحقق
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        className="account-secondary"
-                                        onClick={handleCheckVerification}
-                                        disabled={busy}
-                                    >
-                                        تحققت من بريدي
-                                    </button>
-                                </div>
-                            )}
-
-
-                            {/* رقم الجوال */}
-                            <div className="account-info-row">
-                                <div>
-                                    <small>رقم الجوال</small>
-                                    <strong>
-                                        {profile.phone || user.phoneNumber || 'غير مضاف'}
-                                    </strong>
-                                </div>
-                            </div>
-
-                        </>
+                        </div>
                     ) : (
                         <p>جارٍ تحميل بياناتك...</p>
                     )}

@@ -8430,3 +8430,259 @@ textarea,
     gap: 6px;
   }
 }
+
+
+/* =====================================
+   تنسيق بطاقة معلومات الحساب
+===================================== */
+
+.account-profile-card {
+  overflow: visible;
+  padding: 24px;
+}
+
+.account-profile-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.account-profile-heading>div>small {
+  display: block;
+  margin-bottom: 5px;
+  color: #a47b00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-profile-heading h2 {
+  margin: 0 0 7px;
+  font-size: 21px;
+  color: #1a1a1a;
+}
+
+.account-profile-heading p {
+  margin: 0;
+  color: #888;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.account-profile-heading-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: #fff5d5;
+  color: #b38600;
+}
+
+.account-profile-heading-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+.account-profile-content {
+  padding: 19px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.account-profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.account-profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #ffc107;
+  color: #1a1a1a;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.account-profile-identity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.account-profile-identity-info small {
+  color: #999;
+  font-size: 11px;
+}
+
+.account-profile-identity-info strong {
+  color: #1a1a1a;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.account-profile-identity-info span {
+  color: #888;
+  font-size: 12px;
+}
+
+.account-profile-divider {
+  height: 1px;
+  margin: 20px 0;
+  background: #eee;
+}
+
+.account-profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.account-profile-detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.account-profile-detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: #f7f7f7;
+  color: #555;
+}
+
+.account-profile-detail-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.account-profile-detail>div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.account-profile-detail small {
+  color: #999;
+  font-size: 12px;
+}
+
+.account-profile-detail strong {
+  color: #222;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.account-profile-edit-button {
+  flex-shrink: 0;
+  padding: 8px 13px;
+  border: 1px solid #f0d47c;
+  border-radius: 9px;
+  background: #fff9e8;
+  color: #8a6800;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-profile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.account-profile-edit label {
+  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.account-profile-edit input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+}
+
+.account-profile-edit input:focus {
+  border-color: #ffc107;
+}
+
+.account-profile-edit-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.account-profile-edit-actions button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #ffc107;
+  color: #1a1a1a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-profile-edit-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-profile-edit-actions .account-profile-cancel {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+}
+
+@media (max-width: 480px) {
+  .account-profile-card {
+    padding: 17px;
+  }
+
+  .account-profile-content {
+    padding: 15px;
+  }
+
+  .account-profile-heading h2 {
+    font-size: 19px;
+  }
+
+  .account-profile-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+  }
+
+  .account-profile-identity-info strong {
+    font-size: 15px;
+  }
+}
