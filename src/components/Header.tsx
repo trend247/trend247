@@ -182,12 +182,7 @@ function Header({
                                 <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
                             </svg>
                         </Link>
-                        <Link
-                            to="/account"
-                            className="header-orders-button"
-                        >
-                            طلباتي
-                        </Link>
+
                     </div>
 
                     <Link className="brand" to="/" aria-label="الرئيسية">
@@ -412,6 +407,11 @@ function Header({
                     <Link to="/cart" onClick={closeMenu}>
                         <span>▢</span>
                         سلة التسوق
+                    </Link>
+
+                    <Link to="/account" onClick={closeMenu}>
+                        <span>▤</span>
+                        طلباتي
                     </Link>
 
                     <Link to="/favorites" onClick={closeMenu}>
