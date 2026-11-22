@@ -182,6 +182,12 @@ function Header({
                                 <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
                             </svg>
                         </Link>
+                        <Link
+                            to="/account"
+                            className="header-orders-button"
+                        >
+                            طلباتي
+                        </Link>
                     </div>
 
                     <Link className="brand" to="/" aria-label="الرئيسية">

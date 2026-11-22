@@ -10016,3 +10016,30 @@ textarea,
     transition: none;
   }
 }
+
+/* Header - My Orders */
+.header-orders-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  text-decoration: none;
+  color: #1a1a1a;
+  background: #ffc107;
+  padding: 9px 15px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  transition: 0.25s ease;
+}
+
+.header-orders-button:hover {
+  background: #eab000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+.header-orders-button:active {
+  transform: scale(0.97);
+}
