@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import {
   Routes,
@@ -21,6 +22,7 @@ import CategoryProductsPage from './pages/CategoryProductsPage'
 import ScrollToTop from './components/ScrollToTop'
 import PageTransition from './components/PageTransition'
 import Header from './components/Header'
+import WhatsAppButton from './components/WhatsAppButton'
 
 import { useStore } from './context/useStore'
 
@@ -41,10 +43,12 @@ function App() {
 
   const [cartOpen, setCartOpen] = useState(false)
   const [search, setSearch] = useState('')
+
   // فصل لوحة التحكم عن واجهة المتجر
   if (location.pathname.startsWith('/admin')) {
     return <AdminApp />
   }
+
   return (
     <>
       <div className="store" lang="ar" dir="rtl">
@@ -60,6 +64,9 @@ function App() {
           onSearchChange={setSearch}
         />
 
+        {/* زر واتساب العائم */}
+        <WhatsAppButton />
+
         {/* صفحات المتجر */}
         <Routes>
           {/* الرئيسية */}
@@ -73,6 +80,7 @@ function App() {
             path="/favorites"
             element={<FavoritesPage />}
           />
+
           {/* جميع المنتجات */}
           <Route
             path="/products"
