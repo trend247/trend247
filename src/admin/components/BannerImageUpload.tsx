@@ -155,9 +155,13 @@ export default function BannerImageUpload({
                 outputHeight
             )
 
+            const uniqueFileName = `trend247-banner-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2)}.jpg`
+
             const croppedFile = new File(
                 [croppedBlob],
-                'trend247-banner.jpg',
+                uniqueFileName,
                 { type: 'image/jpeg' }
             )
 
