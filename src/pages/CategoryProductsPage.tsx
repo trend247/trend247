@@ -17,6 +17,14 @@ import type {
     StoreCategory,
 } from '../admin/services/categoryService'
 
+import {
+    getBanners,
+} from '../admin/services/bannerService'
+
+import type {
+    StoreBanner,
+} from '../admin/types/banner'
+
 type CategoryProductsPageProps = {
     search: string
 }
@@ -45,10 +53,16 @@ function CategoryProductsPage({
 
     const [products, setProducts] = useState<Product[]>([])
     const [categories, setCategories] = useState<StoreCategory[]>([])
+    const [banners, setBanners] = useState<StoreBanner[]>([])
+
     const [loading, setLoading] = useState(true)
     const [loadError, setLoadError] = useState(false)
 
     const category = categories.find(item => item.name === id)
+
+    // =====================================
+    // تحميل بيانات الصفحة
+    // =====================================
 
     useEffect(() => {
         let cancelled = false
@@ -58,14 +72,20 @@ function CategoryProductsPage({
             setLoadError(false)
 
             try {
-                const [categoryResult, productResult] = await Promise.all([
+                const [
+                    categoryResult,
+                    productResult,
+                    bannerResult,
+                ] = await Promise.all([
                     getActiveCategories(),
                     getPublishedProducts(),
+                    getBanners(),
                 ])
 
                 if (!cancelled) {
                     setCategories(categoryResult)
                     setProducts(productResult)
+                    setBanners(bannerResult)
                 }
             } catch (error) {
                 console.error('تعذر تحميل بيانات التصنيف:', error)
@@ -86,6 +106,28 @@ function CategoryProductsPage({
             cancelled = true
         }
     }, [])
+
+    // =====================================
+    // بنرات التصنيف
+    // =====================================
+
+    const categoryBanners = useMemo(() => {
+        if (!category) return []
+
+        return banners
+            .filter(banner =>
+                banner.active &&
+                banner.position === 'category' &&
+                banner.categoryId === category.id
+            )
+            .sort(
+                (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+            )
+    }, [banners, category])
+
+    // =====================================
+    // منتجات التصنيف
+    // =====================================
 
     const categoryProducts = useMemo(() => {
         if (!category) return []
@@ -142,10 +184,33 @@ function CategoryProductsPage({
         return result
     }, [products, category, search, sortBy, priceFilter])
 
+    // =====================================
+    // إعادة ضبط الفلاتر
+    // =====================================
+
     const resetFilters = () => {
         setSortBy('default')
         setPriceFilter('all')
     }
+
+    // =====================================
+    // فتح رابط البانر
+    // =====================================
+
+    const handleBannerClick = (link: string) => {
+        if (!link) return
+
+        if (/^https?:\/\//i.test(link)) {
+            window.location.assign(link)
+            return
+        }
+
+        navigate(link.startsWith('/') ? link : `/${link}`)
+    }
+
+    // =====================================
+    // حالات التحميل والأخطاء
+    // =====================================
 
     if (loading) {
         return (
@@ -188,12 +253,23 @@ function CategoryProductsPage({
         )
     }
 
+    // =====================================
+    // عدد منتجات التصنيف
+    // =====================================
+
     const categoryCount = products.filter(
         product => product.category === category.name
     ).length
 
+    // =====================================
+    // واجهة الصفحة
+    // =====================================
+
     return (
         <main className="category-products-page">
+
+            {/* مسار التنقل */}
+
             <nav className="breadcrumb" aria-label="مسار التنقل">
                 <Link to="/">الرئيسية</Link>
                 <span>‹</span>
@@ -203,6 +279,8 @@ function CategoryProductsPage({
                 <span>‹</span>
                 <strong>{category.name}</strong>
             </nav>
+
+            {/* واجهة التصنيف الرئيسية */}
 
             <section
                 className="category-hero"
@@ -231,6 +309,64 @@ function CategoryProductsPage({
                     </div>
                 </div>
             </section>
+
+            {/* =====================================
+                CATEGORY BANNERS
+            ===================================== */}
+
+            {categoryBanners.length > 0 && (
+                <section className="category-banners-section">
+                    {categoryBanners.map(banner => (
+                        <button
+                            type="button"
+                            className="category-banner-card"
+                            key={banner.id}
+                            onClick={() => handleBannerClick(banner.link)}
+                        >
+                            <picture>
+                                {banner.mobileImage && (
+                                    <source
+                                        srcSet={banner.mobileImage}
+                                        media="(max-width: 600px)"
+                                    />
+                                )}
+
+                                <img
+                                    src={banner.image}
+                                    alt={banner.title || banner.name}
+                                    loading="lazy"
+                                />
+                            </picture>
+
+                            <span className="category-banner-overlay" />
+
+                            <span className="category-banner-content">
+                                {banner.name && (
+                                    <small>{banner.name}</small>
+                                )}
+
+                                {banner.title && (
+                                    <strong>{banner.title}</strong>
+                                )}
+
+                                {banner.description && (
+                                    <span>{banner.description}</span>
+                                )}
+
+                                {banner.buttonText && (
+                                    <span className="category-banner-button">
+                                        {banner.buttonText} ←
+                                    </span>
+                                )}
+                            </span>
+                        </button>
+                    ))}
+                </section>
+            )}
+
+            {/* =====================================
+                أقسام أخرى
+            ===================================== */}
 
             <section className="category-switcher">
                 <div className="catalog-section-heading">
@@ -271,6 +407,10 @@ function CategoryProductsPage({
                 </div>
             </section>
 
+            {/* =====================================
+                المنتجات والفلاتر
+            ===================================== */}
+
             <section className="products-section catalog-products-section">
                 <div className="catalog-section-heading catalog-products-heading">
                     <div>
@@ -282,6 +422,8 @@ function CategoryProductsPage({
                         {categoryProducts.length} منتج
                     </span>
                 </div>
+
+                {/* الفلاتر */}
 
                 <div className="catalog-toolbar">
                     <div className="catalog-filter-group">
@@ -330,6 +472,8 @@ function CategoryProductsPage({
                         ↺ إعادة ضبط
                     </button>
                 </div>
+
+                {/* عرض المنتجات */}
 
                 {categoryProducts.length > 0 ? (
                     <ProductGrid

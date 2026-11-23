@@ -31,6 +31,7 @@ import AdminCategories from './AdminCategories'
 import AdminOrders from './AdminOrders'
 import AdminCustomers from './AdminCustomers'
 import AdminOffers from './AdminOffers'
+import AdminBanners from './AdminBanners'
 
 import './Admin.css'
 
@@ -489,6 +490,9 @@ function AdminApp() {
 
             ) : location.pathname === '/admin/offers' ? (
                 <AdminOffers />
+
+            ) : location.pathname === '/admin/banners' ? (
+                <AdminBanners />
 
             ) : (
                 <div className="admin-page-placeholder">
